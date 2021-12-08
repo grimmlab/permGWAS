@@ -1,0 +1,2 @@
+# permGWAS
+Permutation based GWAS
