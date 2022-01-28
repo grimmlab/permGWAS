@@ -110,18 +110,19 @@ python3 run_permgwas.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv --cov ./dat
 ### Options
 |||
 |---|---|
-|-x (-x_file, -genotype) |   absolute or relative path to genotype file |
-|-y (-y_file, -phenotype) |  absolute or relative path to phenotype file |
-|--y_name (--pt_name)|       name of phenotype (column) to be used in phenotype file, optional, default is "phenotype_value"|
+|-x (-x_file, -genotype) | absolute or relative path to genotype file |
+|-y (-y_file, -phenotype) | absolute or relative path to phenotype file |
+|--y_name (--pt_name)| name of phenotype (column) to be used in phenotype file, optional, default is "phenotype_value"|
 |--k (--k_file, --kinship) | absolute or relative path to kinship file, optional|
-|--cov (--cov_file)|         absolute or relative path to covariates file, optional|
-|--maf|                      minor allele frequency threshold as percentage value, optional, default is 0|
-|--perm|                     number of permutations to be performed, optional, default is 0|
-|--out_dir|                  name of the directory result-files should be stored in, optional, if not provided, files will be stored in folder "results" in current directory|
-|--out_file|                NAME of result files, will be stored as NAME_p_values and NAME_min_p_values, optional, if not provided name of phenotype will be used|
-|--device|                   GPU device to be used, optional, default is 0|
-|--batch|                    number of SNPs to work on simultaneously, optional, default is 10000|
-|--plot|                     creates manhattan plot, optional|
+|--cov (--cov_file) | absolute or relative path to covariates file, optional|
+|--maf | minor allele frequency threshold as percentage value, optional, default is 0|
+|--perm | number of permutations to be performed, optional, default is 0|
+|--out_dir | name of the directory result-files should be stored in, optional, if not provided, files will be stored in folder "results" in current directory|
+|--out_file | NAME of result files, will be stored as NAME_p_values and NAME_min_p_values, optional, if not provided name of phenotype will be used|
+|--device | GPU device to be used, optional, default is 0|
+|--batch | number of SNPs to work on simultaneously, optional, default is 50000|
+|--batch_perm | number of SNPs to work on simultaneously while using permutations, optional, default is 1000|
+|--plot | creates manhattan plot, optional|
     
 
 

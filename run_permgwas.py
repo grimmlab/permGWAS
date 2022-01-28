@@ -47,8 +47,10 @@ if __name__ == "__main__":
                              'optional, if not provided name of phenotype will be used')
     parser.add_argument('--device', type=int, default=0,
                         help='specify GPU device to be used, default is 0')
-    parser.add_argument('--batch', type=int, default=10000,
-                        help='specify number of SNPs to work on simultaneously, default is 10000')
+    parser.add_argument('--batch', type=int, default=50000,
+                        help='specify number of SNPs to work on simultaneously, default is 50000')
+    parser.add_argument('--batch_perm', type=int, default=1000,
+                        help='specify number of SNPs to work on simultaneously while using permutations, default is 1000')
     parser.add_argument('--plot', action='store_true',
                         help='optional, creates manhattan plot')
 
@@ -78,7 +80,6 @@ if __name__ == "__main__":
     X, y, K, covs, positions, chrom = prep.load_and_prepare_data(arg=args)
     X, positions, chrom, freq = prep.maf_filter(X, positions, chrom, args.maf)
     print('Loaded data, elapsed time: %f s.' % (time.time()-start))
-    # X = X.to(device)
     y = y.to(args.device)
     K = K.to(args.device)
     if covs is not None:
@@ -103,7 +104,7 @@ if __name__ == "__main__":
     if args.perm is not None:
         print('Start performing GWAS with %d permutations.' % args.perm)
         start_perm = time.time()
-        adjusted_p_val, min_p_val, my_seeds = gwas.perm_gwas(X, y, K, output[:, 1], args.perm, args.batch, covs)
+        adjusted_p_val, min_p_val, my_seeds = gwas.perm_gwas(X, y, K, output[:, 1], args.perm, args.batch_perm, covs)
         df['adjusted_p_val'] = adjusted_p_val
         df_min = pd.DataFrame({'seed': my_seeds,
                                'min_p_val': min_p_val})
