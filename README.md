@@ -84,9 +84,9 @@ tbd
 ```
 
 ### phenotype file 
-permGWAS currently only accepts .csv files for the phenotype. Here the first column should contain the sample ids with 
-"accession_id" as column name. 
-The remaining columns should contain the phenotype values with the phenotype name as column name.
+permGWAS currently only accepts .csv, .pheno and .txt files for the phenotype. Here the first column should contain the 
+sample ids. The remaining columns should contain the phenotype values with the phenotype name as column name. 
+For .txt files it is assumed that the values are separated by a single space.
 
 
 ### kinship file
@@ -101,7 +101,7 @@ python3 run_permgwas.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv --k ./data/
 ### covariates file
 It is possible to run permGWAS with covariates. If no covariates file is provided, only the intercept will be used as 
 fixed effect. Currently, permGWAS only accepts .csv files for covariates. Here the first column should contain the 
-sample ids with "accession_id" as column name. The sample ids must match those of the phenotype file.
+sample ids. The sample ids must match those of the phenotype file.
 
 ```shell
 python3 run_permgwas.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv --cov ./data/cov_matrix.csv

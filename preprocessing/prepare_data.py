@@ -1,11 +1,12 @@
 # functions to load and match genotype and phenotype
+import argparse
 import sys
 import numpy as np
 import torch
 from preprocessing.load_files import load_genotype, load_phenotype, load_kinship, load_covariates
 
 
-def filter_non_informative_snps(X, pos, chrom):
+def filter_non_informative_snps(X: np.array, pos: np.array, chrom: np.array):
     tmp = np.where(X.std(axis=0) == 0)[0]
     X = np.delete(X, tmp, axis=1)
     pos = np.delete(pos, tmp, axis=0)
@@ -13,7 +14,7 @@ def filter_non_informative_snps(X, pos, chrom):
     return X, pos, chrom
 
 
-def standardize_matrix(matrix):
+def standardize_matrix(matrix: np.array):
     """
     :param matrix:
     :return: matrix with zero mean and unit variance
@@ -21,7 +22,7 @@ def standardize_matrix(matrix):
     return (matrix-matrix.mean(axis=0))/matrix.std(axis=0)
 
 
-def get_kinship(X):
+def get_kinship(X: np.array):
     """
     compute realized relationship matrix
     :param X: genotype matrix in additive encoding
@@ -33,14 +34,25 @@ def get_kinship(X):
     return torch.where(K > 0, K, 0.)
 
 
-def load_and_prepare_data(arg):
+def normalize_kinship(K: np.array):
+    """
+    normalize K using a Gower's centered matrix
+    :param K: kinship matrix
+    :return: normalized kinship matrix
+    """
+    n = K.shape[0]
+    P = (torch.eye(n, dtype=K.dtype, device=K.device) - torch.ones(n, n, dtype=K.dtype, device=K.device)/n)
+    return (n-1)/torch.sum(torch.mul(P, K))*K
+
+
+def load_and_prepare_data(arguments: argparse.Namespace):
     """
     load and match genotype and phenotype and covariates, load/create kinship matrix
-    :param arg: argparse.Namespace
+    :param arguments: user input
     :return: genotype matrix, phenotype vector, kinship matrix, vector with SNP positions and corresponding chromosomes
     """
-    X, sample_ids, pos, chrom = load_genotype(arg.x)
-    y = load_phenotype(arg.y, arg.y_name)
+    X, sample_ids, pos, chrom = load_genotype(arguments)
+    y = load_phenotype(arguments)
     y_ids = np.asarray(y.index, dtype=np.int).flatten()
     sample_index = (np.reshape(y_ids, (y_ids.shape[0], 1)) == sample_ids).nonzero()
     if len(sample_index[0]) == 0:
@@ -49,10 +61,10 @@ def load_and_prepare_data(arg):
     X = X[sample_index[1], :]
     y = torch.tensor(y.values, dtype=torch.float64).flatten()[sample_index[0]]
     X, pos, chrom = filter_non_informative_snps(X, pos, chrom)
-    if arg.k is None:
+    if arguments.k is None:
         K = get_kinship(X)
     else:
-        K, K_ids = load_kinship(arg.k)
+        K, K_ids = load_kinship(arguments)
         K_index = (np.reshape(sample_ids[sample_index[1]],
                               (sample_ids[sample_index[1]].shape[0], 1)) == K_ids).nonzero()
         if len(K_index[1]) == len(sample_index[1]):
@@ -60,11 +72,11 @@ def load_and_prepare_data(arg):
         else:
             print("Sample ids of genotype and kinship matrix do not match.")
             sys.exit()
-
-    if arg.cov_file is None:
+    K = normalize_kinship(K)
+    if arguments.cov_file is None:
         covs = None
     else:
-        covs = load_covariates(arg.cov_file)
+        covs = load_covariates(arguments)
         covs_ids = np.asarray(covs.index, dtype=np.int).flatten()
         covs_index = (np.reshape(y_ids[sample_index[0]], (y_ids[sample_index[0]].shape[0], 1)) == covs_ids).nonzero()
         if len(covs_index[1]) == len(sample_index[0]):
@@ -75,7 +87,7 @@ def load_and_prepare_data(arg):
     return X, y, K, covs, pos, chrom
 
 
-def maf_filter(X, positions, chrom, maf):
+def maf_filter(X: np.array, positions: np.array, chrom: np.array, maf: int):
     """
     filter genotype by minor allele frequency
     :param X: genotype matrix

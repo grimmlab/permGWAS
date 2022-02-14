@@ -4,7 +4,7 @@ import pandas as pd
 import seaborn as sns
 
 
-def manhattan(df, name, output, df_min=None):
+def manhattan(df: pd.DataFrame, name: str, output: str, df_min=None):
     df['-log10'] = -np.log10(df[name])
     running_pos = 0
     cumul_pos = []

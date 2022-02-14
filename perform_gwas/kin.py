@@ -5,19 +5,8 @@ from numpy_sugar import is_all_finite
 from glimix_core.lmm import LMM
 
 
-def normalize_kinship(K):
-    """
-    normalize K using a Gower's centered matrix
-    :param K: kinship matrix
-    :return: normalized kinship matrix
-    """
-    n = K.shape[0]
-    P = (torch.eye(n, dtype=K.dtype, device=K.device) - torch.ones(n, n, dtype=K.dtype, device=K.device)/n)
-    return (n-1)/torch.sum(torch.mul(P, K))*K
-
-
 # TODO without limix
-def estimate_variance_components(y, K, fixed_eff, verbose=False):
+def estimate_variance_components(y: torch.tensor, K: torch.tensor, fixed_eff: torch.tensor, verbose=False):
     y_c = y.to(torch.device("cpu"))
     K_c = K.to(torch.device("cpu"))
     fixed_c = fixed_eff.to(torch.device("cpu"))
@@ -39,7 +28,7 @@ def estimate_variance_components(y, K, fixed_eff, verbose=False):
     return v_g, v_e
 
 
-def get_cholesky(K):
+def get_cholesky(K: torch.tensor):
     """
     compute the cholesky decomposition K = CC^T
     :param K:  matrix
@@ -48,7 +37,7 @@ def get_cholesky(K):
     return torch.linalg.cholesky(K)
 
 
-def transform_input(data, C):
+def transform_input(data: torch.tensor, C: torch.tensor):
     """
     solve: data = Cx
     :param data: input vector

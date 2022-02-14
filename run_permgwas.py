@@ -50,7 +50,8 @@ if __name__ == "__main__":
     parser.add_argument('--batch', type=int, default=50000,
                         help='specify number of SNPs to work on simultaneously, default is 50000')
     parser.add_argument('--batch_perm', type=int, default=1000,
-                        help='specify number of SNPs to work on simultaneously while using permutations, default is 1000')
+                        help='specify number of SNPs to work on simultaneously while using permutations, '
+                             'default is 1000')
     parser.add_argument('--plot', action='store_true',
                         help='optional, creates manhattan plot')
 
@@ -77,7 +78,7 @@ if __name__ == "__main__":
     '''load data'''
     print('Checked if all specified files exist. Start loading data.')
     start = time.time()
-    X, y, K, covs, positions, chrom = prep.load_and_prepare_data(arg=args)
+    X, y, K, covs, positions, chrom = prep.load_and_prepare_data(args)
     X, positions, chrom, freq = prep.maf_filter(X, positions, chrom, args.maf)
     print('Loaded data, elapsed time: %f s.' % (time.time()-start))
     y = y.to(args.device)
@@ -88,7 +89,7 @@ if __name__ == "__main__":
     '''perform GWAS'''
     print('Start performing GWAS on phenotype %s for %d SNPs and %d samples.' % (args.y_name, len(positions), len(y)))
     start_gwas = time.time()
-    output = gwas.gwas(X, y, K, args.batch, covs)
+    output = gwas.gwas(args, X, y, K, covs)
     df = pd.DataFrame({'CHR': chrom,
                        'POS': positions,
                        'p_value': output[:, 0],
@@ -98,13 +99,18 @@ if __name__ == "__main__":
                        'effect_size': output[:, 3]})
     print('Done performing GWAS on phenotype %s for %d SNPs.\n '
           'Elapsed time: %f s' % (args.y_name, len(positions), time.time()-start_gwas))
-    torch.cuda.empty_cache()
+    with torch.cuda.device(args.device):
+        torch.cuda.empty_cache()
 
     '''perform GWAS with permutations'''
     if args.perm is not None:
+        y = y.to(args.device)
+        K = K.to(args.device)
+        if covs is not None:
+            covs = covs.to(args.device)
         print('Start performing GWAS with %d permutations.' % args.perm)
         start_perm = time.time()
-        adjusted_p_val, min_p_val, my_seeds = gwas.perm_gwas(X, y, K, output[:, 1], args.perm, args.batch_perm, covs)
+        adjusted_p_val, min_p_val, my_seeds = gwas.perm_gwas(args, X, y, K, output[:, 1], covs)
         df['adjusted_p_val'] = adjusted_p_val
         df_min = pd.DataFrame({'seed': my_seeds,
                                'min_p_val': min_p_val})

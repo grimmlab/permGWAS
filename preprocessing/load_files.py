@@ -1,3 +1,5 @@
+import argparse
+
 import numpy as np
 import torch
 import pandas as pd
@@ -5,16 +7,16 @@ import h5py
 from pandas_plink import read_plink1_bin
 
 
-def load_genotype(gt_file):
+def load_genotype(arguments: argparse.Namespace):
     """
-    load genotype
+    load genotype takes PLink files, binary PLINK files, .csv and .h5, .hdf5, .h5py files
     for binary PLINK files: need either "NAME.bed", "NAME.bim" or "NAME.fam", all need to be in same folder
-    :param gt_file: takes PLink files, binary PLINK files, .csv and .h5, .hdf5, .h5py files
+    :param arguments: user input
     :return: genotype in additive encoding, with sample ids and SNP positions
     """
-    suffix = gt_file.suffix
+    suffix = arguments.x.suffix
     if suffix in ('.bed', '.bim', '.fam'):
-        x_file = gt_file.with_suffix('').as_posix()
+        x_file = arguments.x.with_suffix('').as_posix()
         gt = read_plink1_bin(x_file + '.bed', x_file + '.bim',
                              x_file + '.fam', ref="a0", verbose=False)
         sample_ids = np.array(gt['fid'], dtype=np.int).flatten()
@@ -22,25 +24,25 @@ def load_genotype(gt_file):
         chromosomes = np.array(gt['chrom']).flatten()
         X = torch.tensor(gt.values, dtype=torch.float64)
     elif suffix in ('.h5', '.hdf5', '.h5py'):
-        with h5py.File(gt_file, "r") as gt:
+        with h5py.File(arguments.x, "r") as gt:
             chromosomes = gt['chr_index'][:].astype(str)
             positions = gt['position_index'][:].astype(int)
             sample_ids = gt['sample_ids'][:].astype(int)
             X = torch.tensor(gt['snps'][:], dtype=torch.float64)
     elif suffix == '.csv':
-        gt = pd.read_csv(gt_file, index_col=0)
+        gt = pd.read_csv(arguments.x, index_col=0)
         identifiers = np.array(list(map(lambda a: a.split("_"), gt.columns.values)))
         chromosomes = identifiers[:, 0]
         positions = identifiers[:, 1]
         sample_ids = np.asarray(gt.index)
         X = torch.tensor(gt.values, dtype=torch.float64)
     elif suffix in ('map', 'ped'):
-        x_file = gt_file.with_suffix('').as_posix()
+        x_file = arguments.x.with_suffix('').as_posix()
         with open(x_file + '.map', 'r') as f:
             chromosomes = []
             positions = []
             for line in f:
-                tmp = line.strip().split("\t")
+                tmp = line.strip().split(" ")
                 chromosomes.append(tmp[0].strip())
                 positions.append(tmp[-1].strip())
         chromosomes = np.array(chromosomes)
@@ -68,7 +70,7 @@ def load_genotype(gt_file):
     return X, sample_ids, positions, chromosomes
 
 
-def encode_homozygous(matrix):
+def encode_homozygous(matrix: np.array):
     """
     :param matrix:
     :return: get additive encoding of genotype matrix
@@ -86,45 +88,51 @@ def encode_homozygous(matrix):
     return torch.tensor(maj_min[ind_arr, cols])
 
 
-def load_phenotype(pt_file, pt_name):
+def load_phenotype(arguments: argparse.Namespace):
     """
     load phenotype
-    for csv-files: column name of sample ids has to be "accession_id"
-    :param pt_file: takes csv-files
-    :param pt_name: name of phenotype (column) to be used
+    Accept .csv, .pheno, .txt files. For .txt files assume that separator is a single space. First column should contain
+     sample_ids. Name of phenotype should be column name
+    :param arguments: user input
     :return: pandas DataFrame with sample ids as index
     """
-    if pt_file.suffix == ".csv":
-        y = pd.read_csv(pt_file).sort_values(['accession_id']).groupby('accession_id').mean()
-        if pt_name not in y.columns:
-            raise Exception('Phenotype ' + pt_name + ' is not in phenotype file ' + str(pt_file))
-        else:
-            y = y[[pt_name]].dropna()
+    suffix = arguments.y.suffix
+    if suffix == ".csv":
+        y = pd.read_csv(arguments.y)
+    elif suffix in (".pheno", ".txt"):
+        y = pd.read_csv(arguments.y, sep=" ")
     else:
-        raise NotImplementedError('Only accept .csv phenotype files')
+        raise NotImplementedError('Only accept .csv, .pheno and .txt phenotype files')
+    y = y.sort_values(y.columns[0]).groupby(y.columns[0]).mean()
+    if arguments.y_name not in y.columns:
+        raise Exception('Phenotype ' + arguments.y_name + ' is not in phenotype file ' + str(arguments.y))
+    else:
+        y = y[[arguments.y_name]].dropna()
     return y
 
 
-def load_covariates(cov_file):
+def load_covariates(arguments: argparse.Namespace):
     """
-    for csv-files: column name of sample ids has to be "sample_id"
-    :param cov_file: file containing covariates, take .csv
+    Only take csv-files: sample ids have to be in first column
+    :param arguments: user input
     :return: pandas DataFrame with sample ids as index
     """
-    if cov_file.suffix == ".csv":
-        covs = pd.read_csv(cov_file).sort_values(['accession_id']).groupby('accession_id').mean().dropna()
+    if arguments.cov_file.suffix == ".csv":
+        covs = pd.read_csv(arguments.cov_file)
+        covs = covs.sort_values(covs.columns[0]).groupby(covs.columns[0]).mean().dropna()
     else:
         raise NotImplementedError('Only accept .csv covariates files')
     return covs
 
 
-def load_kinship(k_file):
+def load_kinship(arguments: argparse.Namespace):
     """
-    :param k_file: file containing kinship matrix, take .csv
+    load kinship matrix fom file. Only take .csv files. Sample ids have to be in first column
+    :param arguments: user input
     :return: kinship matrix and sample ids
     """
-    if k_file.suffix == ".csv":
-        kin = pd.read_csv(k_file, index_col=0)
+    if arguments.k.suffix == ".csv":
+        kin = pd.read_csv(arguments.k, index_col=0)
         K = torch.tensor(kin.values)
         sample_ids = np.array(kin.index)
     else:

@@ -1,27 +1,29 @@
 # functions for GWAS with EMMAX and EMMAXperm
+import argparse
+
 import torch
 import scipy.stats as stats
 from perform_gwas.kin import transform_input
 
 
 # functions for EMMAX
-def get_fixed_effects(covs, n, dev):
+def get_fixed_effects(arguments: argparse.Namespace, covs: torch.tensor, n: int):
     """
     check for covariates
-    :param dev:
+    :param arguments: user input
     :param covs: vector or matrix of covariates or None
     :param n: number of samples
     :return: vector of ones if no covs are used, matrix containing column of ones and covs, dim (n,c+1)
     """
     if covs is None:
-        return torch.ones((n, 1), dtype=torch.float64, device=dev)
+        return torch.ones((n, 1), dtype=torch.float64, device=arguments.device)
     elif covs.ndim == 1:
-        return torch.stack((torch.ones(n, dtype=torch.float64, device=dev), covs), dim=1)
+        return torch.stack((torch.ones(n, dtype=torch.float64, device=arguments.device), covs), dim=1)
     else:
-        return torch.cat((torch.ones((n, 1), dtype=torch.float64, device=dev), covs), dim=1)
+        return torch.cat((torch.ones((n, 1), dtype=torch.float64, device=arguments.device), covs), dim=1)
 
 
-def get_v_batch(v, batchsize):
+def get_v_batch(v: torch.tensor, batchsize: int):
     """
     :param v: vector of length n or matrix of dim (n,c)
     :param batchsize:
@@ -33,7 +35,7 @@ def get_v_batch(v, batchsize):
         return v.repeat(batchsize, 1, 1)
 
 
-def get_x_batch(X, fixedEff, lower_bound, upper_bound):
+def get_x_batch(X: torch.tensor, fixedEff: torch.tensor, lower_bound: int, upper_bound: int):
     """
     :param X: nxm genotype matrix
     :param fixedEff: nxc matrix of fixed effects
@@ -46,7 +48,7 @@ def get_x_batch(X, fixedEff, lower_bound, upper_bound):
     return torch.cat((b, Xb), dim=2)
 
 
-def get_rss_h0(y, fixedEff):
+def get_rss_h0(y: torch.tensor, fixedEff: torch.tensor):
     """
     compute residual sum of squares of H0: marker has no effect on phenotype
     :param y: phenotype vector
@@ -59,7 +61,7 @@ def get_rss_h0(y, fixedEff):
     return torch.matmul(torch.t(dif), dif)
 
 
-def get_rss_and_se(X, y):
+def get_rss_and_se(X: torch.tensor, y: torch.tensor):
     """
     compute residual sum of squares
     :param X:
@@ -78,7 +80,7 @@ def get_rss_and_se(X, y):
     return rss, se, torch.squeeze(beta[:, -1])
 
 
-def get_f_score(rss0, rss1, n, freedom_deg):
+def get_f_score(rss0: torch.tensor, rss1: torch.tensor, n: int, freedom_deg: int):
     """
     :param rss0: residual sum of squares of H0: marker has no effect on phenotype
     :param rss1: residual sum of squares of H1: marker has effect on phenotype
@@ -89,7 +91,7 @@ def get_f_score(rss0, rss1, n, freedom_deg):
     return (n-freedom_deg)*(rss0-rss1)/rss1
 
 
-def get_p_value(f1, n, freedom_deg):
+def get_p_value(f1: float, n: int, freedom_deg: int):
     """
     compute p-value using survival function of f distribution
     :param f1: F1 score
@@ -101,23 +103,23 @@ def get_p_value(f1, n, freedom_deg):
 
 
 # functions for EMMAXperm
-def get_fixed_effects_perm(covs, n, perm, dev):
+def get_fixed_effects_perm(arguments: argparse.Namespace, covs: torch.tensor, n: int):
     """
         check for covariates
-        :param dev:
+        :param arguments: user input
         :param covs: vector or matrix of covariates or None
         :param n: number of samples
-        :param perm: number of permutations
         :return: tensor of ones if no covs are used dim (p,n,1),tensor containing ones and covs, dim (p,n,c+1)
         """
     if covs is None:
-        return torch.ones((perm, n, 1), dtype=torch.float64, device=dev)
+        return torch.ones((arguments.perm, n, 1), dtype=torch.float64, device=arguments.device)
     else:
-        covs_batch = get_v_batch(covs, perm)
-        return torch.cat((torch.ones((perm, n, 1), dtype=torch.float64, device=dev), covs_batch), dim=2)
+        covs_batch = get_v_batch(covs, arguments.perm)
+        return torch.cat((torch.ones((arguments.perm, n, 1), dtype=torch.float64, device=arguments.device), covs_batch),
+                         dim=2)
 
 
-def get_v_batch_perm(v, batchsize):
+def get_v_batch_perm(v: torch.tensor, batchsize: int):
     """
     :param v: tensor of dim (p,n,1) or (p,n,c)
     :param batchsize:
@@ -126,7 +128,7 @@ def get_v_batch_perm(v, batchsize):
     return torch.transpose(v.repeat(batchsize, 1, 1, 1), dim0=0, dim1=1)
 
 
-def get_x_batch_perm(X, fixedEff, lower, upper):
+def get_x_batch_perm(X: torch.tensor, fixedEff: torch.tensor, lower: int, upper: int):
     """
     :param X: tensor of dim (p,n,m) containing a matrix X for each permutation
     :param fixedEff: tensor of dim (p,n,1) or (p,n,c)
@@ -139,7 +141,7 @@ def get_x_batch_perm(X, fixedEff, lower, upper):
     return torch.cat((b, Xb), dim=3)
 
 
-def get_rss_h0_perm(y, fixedEff):
+def get_rss_h0_perm(y: torch.tensor, fixedEff: torch.tensor):
     """
     compute residual sum of squares of H0 with permutations
     :param y: phenotype matrix, containing permutations in columns
@@ -152,11 +154,11 @@ def get_rss_h0_perm(y, fixedEff):
     return torch.squeeze(torch.sum(torch.mul(dif, dif), dim=1))
 
 
-def get_rss_perm(X, y):
+def get_rss_perm(X: torch.tensor, y: torch.tensor):
     """
     compute residual sum of squares
-    :param X:
-    :param y:
+    :param X: genotype matrix
+    :param y: phenotype vector
     :return:
     """
     y_batch = get_v_batch_perm(y, X.shape[1])
