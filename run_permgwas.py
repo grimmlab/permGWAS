@@ -99,8 +99,9 @@ if __name__ == "__main__":
                        'effect_size': output[:, 3]})
     print('Done performing GWAS on phenotype %s for %d SNPs.\n '
           'Elapsed time: %f s' % (args.y_name, len(positions), time.time()-start_gwas))
-    with torch.cuda.device(args.device):
-        torch.cuda.empty_cache()
+    if arguments.device.type != "cpu":
+        with torch.cuda.device(args.device):
+            torch.cuda.empty_cache()
 
     '''perform GWAS with permutations'''
     if args.perm is not None:
