@@ -43,13 +43,14 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
         RSS_1, SE, effSize = model.get_rss_and_se(X_batch, y_trans)
         F_score = model.get_f_score(RSS_0, RSS_1, n, freedom_deg)
         tmp.append(torch.stack((F_score, SE, effSize), dim=1))
-        with torch.cuda.device(arguments.device):
-            del RSS_1
-            del F_score
-            del X_batch
-            del SE
-            del effSize
-            torch.cuda.empty_cache()
+        if arguments.device.type != "cpu":
+            with torch.cuda.device(arguments.device):
+                del RSS_1
+                del F_score
+                del X_batch
+                del SE
+                del effSize
+                torch.cuda.empty_cache()
     output = torch.cat(tmp, dim=0)  # shape(m,3)
     output = output.to(torch.device("cpu"))
     have_test_stats_time = time.time()
@@ -88,12 +89,13 @@ def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K
     y_perm = kin.transform_input(torch.unsqueeze(torch.t(y_perm), 2), C_perm)  # shape: (p,n,1)
     fixed = kin.transform_input(fixed, C_perm)  # shape: (p,n,1) or (p,n,c+1)
     RSS0 = model.get_rss_h0_perm(y_perm, fixed)  # shape: (p)
-    with torch.cuda.device(arguments.device):
-        del var_comps
-        del K
-        del y
-        del covs
-        torch.cuda.empty_cache()
+    if arguments.device.type != "cpu":
+        with torch.cuda.device(arguments.device):
+            del var_comps
+            del K
+            del y
+            del covs
+            torch.cuda.empty_cache()
     freedom_deg = fixed.shape[2]+1
     test_stats = []
     for i in range(int(np.ceil(m / arguments.batch_perm))):
@@ -108,11 +110,12 @@ def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K
         RSS = model.get_rss_perm(X_batch, y_perm)  # shape: (p,b)
         F_score = model.get_f_score(torch.t(RSS0.repeat(upper_bound-lower_bound, 1)), RSS, n, freedom_deg)  # shape: (p,b)
         test_stats.append(F_score)
-        with torch.cuda.device(arguments.device):
-            del RSS
-            del F_score
-            del X_batch
-            torch.cuda.empty_cache()
+        if arguments.device.type != "cpu":
+            with torch.cuda.device(arguments.device):
+                del RSS
+                del F_score
+                del X_batch
+                torch.cuda.empty_cache()
     test_stats = torch.cat(test_stats, dim=1)  # shape: (p,m)
     have_test_stats_time = time.time()
     print("Have perm test statistics. Elapsed time: ", have_test_stats_time-start)
