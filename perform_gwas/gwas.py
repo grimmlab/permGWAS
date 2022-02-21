@@ -28,10 +28,6 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
     fixed = kin.transform_input(fixed, C)  # shape: (n) or (n,c+1)
     RSS_0 = model.get_rss_h0(y_trans, fixed)  # shape: (1)
     freedom_deg = fixed.shape[1] + 1
-    K = K.to(torch.device("cpu"))
-    y = y.to(torch.device("cpu"))
-    if covs is not None:
-        covs = covs.to(torch.device("cpu"))
     tmp = []
     for i in range(int(np.ceil(m / arguments.batch))):
         lower_bound = i * arguments.batch
@@ -42,7 +38,7 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
         X_batch = model.get_x_batch(X_batch, fixed, lower_bound, upper_bound)  # shape: (b,n,2) or (b,n,c+2)
         RSS_1, SE, effSize = model.get_rss_and_se(X_batch, y_trans)
         F_score = model.get_f_score(RSS_0, RSS_1, n, freedom_deg)
-        tmp.append(torch.stack((F_score, SE, effSize), dim=1))
+        tmp.append(torch.stack((F_score, SE, effSize), dim=1).to(torch.device("cpu")))
         if arguments.device.type != "cpu":
             with torch.cuda.device(arguments.device):
                 del RSS_1
@@ -53,13 +49,13 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
                 torch.cuda.empty_cache()
     output = torch.cat(tmp, dim=0)  # shape(m,3)
     output = output.to(torch.device("cpu"))
-    have_test_stats_time = time.time()
-    print("Have test statistics of %d SNPs. Elapsed time: %f" % (m, have_test_stats_time-start))
+    time_test_stats = time.time()
+    print("Have test statistics of %d SNPs. Elapsed time: %f" % (m, time_test_stats-start))
     print("Calculate P-values now")
     p_val = list(map(model.get_p_value, output[:, 0], repeat(n), repeat(freedom_deg)))
-    print("Have P-values. Elapsed time: ", time.time()-have_test_stats_time)
+    print("Have P-values. Elapsed time: ", time.time()-time_test_stats)
     return torch.cat((torch.tensor(p_val).unsqueeze(1), output), dim=1)
-# TODO threshold for p-values
+
 
 
 def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: torch.tensor,
@@ -109,7 +105,7 @@ def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K
         X_batch = model.get_x_batch_perm(X_batch, fixed, lower_bound, upper_bound)  # shape: (p,b,n,2) or (p,b,n,c+2)
         RSS = model.get_rss_perm(X_batch, y_perm)  # shape: (p,b)
         F_score = model.get_f_score(torch.t(RSS0.repeat(upper_bound-lower_bound, 1)), RSS, n, freedom_deg)  # shape: (p,b)
-        test_stats.append(F_score)
+        test_stats.append(F_score.to(torch.device("cpu")))
         if arguments.device.type != "cpu":
             with torch.cuda.device(arguments.device):
                 del RSS
@@ -117,10 +113,10 @@ def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K
                 del X_batch
                 torch.cuda.empty_cache()
     test_stats = torch.cat(test_stats, dim=1)  # shape: (p,m)
-    have_test_stats_time = time.time()
-    print("Have perm test statistics. Elapsed time: ", have_test_stats_time-start)
+    time_test_stats = time.time()
+    print("Have perm test statistics. Elapsed time: ", time_test_stats-start)
     test_stats = test_stats.to(torch.device("cpu"))
     perm_p_val = perm.get_perm_p_value(test_stats, true_test_stats)  # shape: (m)
     min_p_val = perm.get_min_p_value(test_stats, n, freedom_deg)  # shape: (p)
-    print("Have adjusted p-values and minimal p-values. Elapsed time: ", time.time()-have_test_stats_time)
+    print("Have adjusted p-values and minimal p-values. Elapsed time: ", time.time()-time_test_stats)
     return perm_p_val, min_p_val, my_seeds
