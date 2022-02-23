@@ -45,13 +45,17 @@ def normalize_kinship(K: np.array):
     return (n-1)/torch.sum(torch.mul(P, K))*K
 
 
-def load_and_prepare_data(arguments: argparse.Namespace):
+def load_and_prepare_data(arguments: argparse.Namespace, number_of_samples=None, number_of_snps=None):
     """
     load and match genotype and phenotype and covariates, load/create kinship matrix
     :param arguments: user input
+    :param number_of_samples: if genotype is .h5 file, it is possible to restrict number of samples to load, i.e.
+                                load only sample 0 to number_of_samples
+    :param number_of_snps: if genotype is .h5 file, it is possible to restrict number of snps to load, i.e.
+                                load only sample 0 to number_of_snps
     :return: genotype matrix, phenotype vector, kinship matrix, vector with SNP positions and corresponding chromosomes
     """
-    X, sample_ids, pos, chrom = load_genotype(arguments)
+    X, sample_ids, pos, chrom = load_genotype(arguments, number_of_samples, number_of_snps)
     y = load_phenotype(arguments)
     y_ids = np.asarray(y.index, dtype=np.int).flatten()
     sample_index = (np.reshape(y_ids, (y_ids.shape[0], 1)) == sample_ids).nonzero()

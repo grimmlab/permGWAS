@@ -35,3 +35,15 @@ def check_dir_paths(arg):
     else:
         my_path.mkdir(parents=True, exist_ok=True)
     return my_path
+
+
+def make_dir_path(arg):
+    """
+    same as check_dir_path, but does not check if file already exists, i.e. overwrites results file if it already exists
+    :param arg: argparse.Namespace
+    :return: path object
+    """
+    my_path = Path(arg.out_dir).joinpath('runtime')
+    if not my_path.is_dir():
+        my_path.mkdir(parents=True, exist_ok=True)
+    return my_path

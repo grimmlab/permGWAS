@@ -23,13 +23,18 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
     m = X.shape[1]
     fixed = model.get_fixed_effects(arguments, covs, n)  # shape: (n,1) or (n,c+1)
     v_g, v_e = kin.estimate_variance_components(y, K, fixed)  # shape: (2)
+    time_varcomp = time.time()
+    runtime = [['variance-components', time_varcomp - start]]
     C = kin.get_cholesky(v_g * K + v_e * torch.eye(n, dtype=K.dtype, device=arguments.device))  # shape: (n,n)
     y_trans = kin.transform_input(y, C)  # shape: (n)
     fixed = kin.transform_input(fixed, C)  # shape: (n) or (n,c+1)
     RSS_0 = model.get_rss_h0(y_trans, fixed)  # shape: (1)
     freedom_deg = fixed.shape[1] + 1
+    time_trans = time.time()
+    runtime.append(['transformations', time_trans - time_varcomp])
     tmp = []
     for i in range(int(np.ceil(m / arguments.batch))):
+        time_batch_start = time.time()
         lower_bound = i * arguments.batch
         upper_bound = (i + 1) * arguments.batch
         if upper_bound > m:
@@ -47,15 +52,19 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
                 del SE
                 del effSize
                 torch.cuda.empty_cache()
+        time_batch_end = time.time()
+        runtime.append([f'batch_{i}', time_batch_end - time_batch_start])
     output = torch.cat(tmp, dim=0)  # shape(m,3)
     output = output.to(torch.device("cpu"))
     time_test_stats = time.time()
+    runtime.append(['batch_full', time_test_stats - time_trans])
     print("Have test statistics of %d SNPs. Elapsed time: %f" % (m, time_test_stats-start))
     print("Calculate P-values now")
     p_val = list(map(model.get_p_value, output[:, 0], repeat(n), repeat(freedom_deg)))
-    print("Have P-values. Elapsed time: ", time.time()-time_test_stats)
-    return torch.cat((torch.tensor(p_val).unsqueeze(1), output), dim=1)
-
+    time_pval = time.time()
+    runtime.append(['p-values', time_pval - time_test_stats])
+    print("Have P-values. Elapsed time: ", time_pval-time_test_stats)
+    return torch.cat((torch.tensor(p_val).unsqueeze(1), output), dim=1), runtime
 
 
 def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: torch.tensor,
@@ -80,6 +89,8 @@ def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K
     for i in range(arguments.perm):
         var_comps.append(kin.estimate_variance_components(y_perm[:, i], K, fixed[0, :, :]))  # shape: (p,2)
     var_comps = torch.tensor(np.array(var_comps), device=arguments.device)
+    time_varcomp = time.time()
+    runtime = [['perm_variance-components', time_varcomp - start]]
     C_perm = perm.get_perm_kinships(K, var_comps)  # shape: (p,n,n)
     C_perm = kin.get_cholesky(C_perm)  # shape: (p,n,n)
     y_perm = kin.transform_input(torch.unsqueeze(torch.t(y_perm), 2), C_perm)  # shape: (p,n,1)
@@ -93,8 +104,11 @@ def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K
             del covs
             torch.cuda.empty_cache()
     freedom_deg = fixed.shape[2]+1
+    time_trans = time.time()
+    runtime.append(['perm_transformations', time_trans - time_varcomp])
     test_stats = []
     for i in range(int(np.ceil(m / arguments.batch_perm))):
+        time_batch_start = time.time()
         lower_bound = i * arguments.batch_perm
         upper_bound = (i + 1) * arguments.batch_perm
         if upper_bound > m:
@@ -112,11 +126,16 @@ def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K
                 del F_score
                 del X_batch
                 torch.cuda.empty_cache()
+        time_batch_end = time.time()
+        runtime.append([f'perm_batch_{i}', time_batch_end - time_batch_start])
     test_stats = torch.cat(test_stats, dim=1)  # shape: (p,m)
     time_test_stats = time.time()
+    runtime.append(['perm_batch_full', time_test_stats - time_trans])
     print("Have perm test statistics. Elapsed time: ", time_test_stats-start)
     test_stats = test_stats.to(torch.device("cpu"))
     perm_p_val = perm.get_perm_p_value(test_stats, true_test_stats)  # shape: (m)
     min_p_val = perm.get_min_p_value(test_stats, n, freedom_deg)  # shape: (p)
-    print("Have adjusted p-values and minimal p-values. Elapsed time: ", time.time()-time_test_stats)
-    return perm_p_val, min_p_val, my_seeds
+    time_pval = time.time()
+    runtime.append(['perm_p-values', time_pval - time_test_stats])
+    print("Have adjusted p-values and minimal p-values. Elapsed time: ", time_pval-time_test_stats)
+    return perm_p_val, min_p_val, my_seeds, runtime

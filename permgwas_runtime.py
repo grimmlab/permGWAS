@@ -6,15 +6,12 @@ os.environ["VECLIB_MAXIMUM_THREADS"] = "16"
 os.environ["NUMEXPR_NUM_THREADS"] = "16"
 import argparse
 import torch
+import numpy as np
 from pathlib import Path
-from preprocessing import prepare_data as prep
 from preprocessing import check_functions as check
-from perform_gwas import gwas
-from plot import plot
+from runtime_experiments import permgwas
 import pandas as pd
-import time
 torch.set_num_threads(16)
-
 
 if __name__ == "__main__":
 
@@ -42,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument('--maf', type=int, choices=range(0, 30), default=0,
                         help='specify minor allele frequency threshold as percentage value,'
                              'optional, if not provided no maf filtering will be performed')
-    parser.add_argument('--perm', type=int,
+    parser.add_argument('--perm', type=int, default=100,
                         help='specify the number of permutations (integer value) to be performed,'
                              'optional, if not provided no permutations will be performed')
     parser.add_argument('--out_dir', type=str, default=Path.cwd().joinpath('results'),
@@ -54,24 +51,28 @@ if __name__ == "__main__":
                              'optional, if not provided name of phenotype will be used')
     parser.add_argument('--device', type=int, default=0,
                         help='specify GPU device to be used, default is 0')
-    parser.add_argument('--batch', type=int, default=50000,
+    parser.add_argument('--batch', type=int, default=250000,
                         help='specify number of SNPs to work on simultaneously, default is 50000')
-    parser.add_argument('--batch_perm', type=int, default=1000,
+    parser.add_argument('--batch_perm', type=int, default=5000,
                         help='specify number of SNPs to work on simultaneously while using permutations, '
                              'default is 1000')
-    parser.add_argument('--plot', action='store_true',
-                        help='optional, creates manhattan plot')
+    parser.add_argument('--experiment', type=str, default='snps', help='specify type of runtime experiment, '
+                        'choose "snps" to run experiments with different numbers of snps and 1000 samples,'
+                        'choose "samples" to run experiments with different numbers of samples and 1mio snps, '
+                        'choose "perm" to run exp with 1000 samples, 1mio snps and different number of permutations.'
+                        'Default is "snps".')
 
     args = parser.parse_args()
 
     '''check if all files and directories exist'''
     if args.out_file is None:
-        args.out_file = args.y_name
+        args.out_file = 'runtime_experiment'
     args.x = check.check_file_paths(args.x)
     args.y = check.check_file_paths(args.y)
     args.k = check.check_file_paths(args.k)
     args.cov_file = check.check_file_paths(args.cov_file)
-    args.out_dir = check.check_dir_paths(arg=args)
+    args.out_dir = check.make_dir_path(arg=args)
+    print('Checked if all specified files exist.')
 
     '''check if GPU is available'''
     if torch.cuda.is_available():
@@ -82,58 +83,59 @@ if __name__ == "__main__":
         print('GPU is not available. Perform computations on device ', dev)
     args.device = torch.device(dev)
 
-    '''load data'''
-    print('Checked if all specified files exist. Start loading data.')
-    start = time.time()
-    X, y, K, covs, positions, chrom = prep.load_and_prepare_data(args)
-    X, positions, chrom, freq = prep.maf_filter(X, positions, chrom, args.maf)
-    print('Loaded data, elapsed time: %f s.' % (time.time()-start))
-    y = y.to(args.device)
-    K = K.to(args.device)
-    if covs is not None:
-        covs = covs.to(args.device)
+    if args.experiment == 'snps':
+        print('Perform runtime experiment on number of snps.')
+        # set parameters for runtime experiment
+        list_of_snps = np.append(np.append(np.arange(10000, 100000, 5000), np.arange(100000, 1000000, 50000)),
+                                 np.arange(500000, 5500000, 500000))
+        number_of_samples = 1000
+        for snps in list_of_snps:
+            print('Start experiment with %s samples and %s snps' % (number_of_samples, snps))
+            runtime = []
+            for run in range(3):
+                print('start run ' + str(run + 1) + ' of 3')
+                runtime = runtime + permgwas.permgwas(args, number_of_samples, snps)
+            runtime = np.array(runtime)
+            df_run = pd.DataFrame({'label': runtime[:, 0],
+                                   'time': runtime[:, 1]})
+            df_run.to_csv(
+                args.out_dir.joinpath('runtime_snps_' + str(number_of_samples) + '_samples_' + str(snps) + '_snps_' +
+                                      str(args.perm) + '_permutations.csv'), index=False)
+    elif args.experiment == 'samples':
+        print('Perform runtime experiment on number of samples.')
+        # set parameters for runtime experiment
+        list_of_samples = np.append(np.arange(100, 1000, 50), np.arange(1000, 10500, 500))
+        number_of_snps = 1000000
+        for samples in list_of_samples:
+            print('Start experiment with %s samples and %s snps' % (samples, number_of_snps))
+            runtime = []
+            for run in range(3):
+                print('start run ' + str(run + 1) + ' of 3')
+                runtime = runtime + permgwas.permgwas(args, samples, number_of_snps)
+            runtime = np.array(runtime)
+            df_run = pd.DataFrame({'label': runtime[:, 0],
+                                   'time': runtime[:, 1]})
+            df_run.to_csv(
+                args.out_dir.joinpath('runtime_samples_' + str(samples) + '_samples_' + str(number_of_snps) + '_snps_' +
+                                      str(args.perm) + '_permutations.csv'), index=False)
 
-    '''perform GWAS'''
-    print('Start performing GWAS on phenotype %s for %d SNPs and %d samples.' % (args.y_name, len(positions), len(y)))
-    start_gwas = time.time()
-    output, runtime = gwas.gwas(args, X, y, K, covs)
-    df = pd.DataFrame({'CHR': chrom,
-                       'POS': positions,
-                       'p_value': output[:, 0],
-                       'test_stat': output[:, 1],
-                       'maf': freq,
-                       'SE': output[:, 2],
-                       'effect_size': output[:, 3]})
-    print('Done performing GWAS on phenotype %s for %d SNPs.\n '
-          'Elapsed time: %f s' % (args.y_name, len(positions), time.time()-start_gwas))
-    if args.device.type != "cpu":
-        with torch.cuda.device(args.device):
-            torch.cuda.empty_cache()
-
-    '''perform GWAS with permutations'''
-    if args.perm is not None:
-        y = y.to(args.device)
-        K = K.to(args.device)
-        if covs is not None:
-            covs = covs.to(args.device)
-        print('Start performing GWAS with %d permutations.' % args.perm)
-        start_perm = time.time()
-        adjusted_p_val, min_p_val, my_seeds, runtime_perm = gwas.perm_gwas(args, X, y, K, output[:, 1], covs)
-        df['adjusted_p_val'] = adjusted_p_val
-        df_min = pd.DataFrame({'seed': my_seeds,
-                               'min_p_val': min_p_val})
-        df_min.to_csv(args.out_dir.joinpath(args.out_file + '_min_p_values.csv'), index=False)
-        print('Done performing GWAS with %d permutations.'
-              'Elapsed time: %f s' % (args.perm, time.time()-start_perm))
-
-    '''save p values'''
-    df.to_csv(args.out_dir.joinpath(args.out_file + '_p_values.csv'), index=False)
-    print('Total time: ', time.time()-start)
-
-    '''create manhattan plot'''
-    if args.plot is True:
-        out = args.out_file.joinpath(args.file_name)
-        if args.perm is None:
-            plot.create_manhattan(df, args)
-        else:
-            plot.create_manhattan(df, args, df_min=df_min)
+    elif args.experiment == 'perm':
+        print('Perform runtime experiment on number of permutations.')
+        # set parameters for runtime experiment
+        list_of_perm = np.append(np.arange(10, 100, 10), np.arange(100, 1000, 50))
+        number_of_samples = 1000
+        number_of_snps = 1000000
+        for perm in list_of_perm:
+            print('Start experiment with %s samples, %s snps and %s permutations'
+                  % (number_of_samples, number_of_snps, perm))
+            args.perm = perm
+            runtime = []
+            for run in range(3):
+                print('start run ' + str(run + 1) + ' of 3')
+                runtime = runtime + permgwas.permgwas(args, number_of_samples, number_of_snps)
+            runtime = np.array(runtime)
+            df_run = pd.DataFrame({'label': runtime[:, 0],
+                                   'time': runtime[:, 1]})
+            df_run.to_csv(
+                args.out_dir.joinpath('runtime_perm_' + str(number_of_samples) + '_samples_' + str(number_of_snps) +
+                                      '_snps_' + str(args.perm) + '_permutations.csv'), index=False)

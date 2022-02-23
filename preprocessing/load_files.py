@@ -7,11 +7,15 @@ import h5py
 from pandas_plink import read_plink1_bin
 
 
-def load_genotype(arguments: argparse.Namespace):
+def load_genotype(arguments: argparse.Namespace, number_of_samples=None, number_of_snps=None):
     """
     load genotype takes PLink files, binary PLINK files, .csv and .h5, .hdf5, .h5py files
     for binary PLINK files: need either "NAME.bed", "NAME.bim" or "NAME.fam", all need to be in same folder
     :param arguments: user input
+    :param number_of_samples: if genotype is .h5 file, it is possible to restrict number of samples to load, i.e.
+                                load only sample 0 to number_of_samples
+    :param number_of_snps: if genotype is .h5 file, it is possible to restrict number of snps to load, i.e.
+                                load only sample 0 to number_of_snps
     :return: genotype in additive encoding, with sample ids and SNP positions
     """
     suffix = arguments.x.suffix
@@ -25,10 +29,10 @@ def load_genotype(arguments: argparse.Namespace):
         X = torch.tensor(gt.values, dtype=torch.float64)
     elif suffix in ('.h5', '.hdf5', '.h5py'):
         with h5py.File(arguments.x, "r") as gt:
-            chromosomes = gt['chr_index'][:].astype(str)
-            positions = gt['position_index'][:].astype(int)
-            sample_ids = gt['sample_ids'][:].astype(int)
-            X = torch.tensor(gt['snps'][:], dtype=torch.float64)
+            chromosomes = gt['chr_index'][:number_of_snps].astype(str)
+            positions = gt['position_index'][:number_of_snps].astype(int)
+            sample_ids = gt['sample_ids'][:number_of_samples].astype(int)
+            X = torch.tensor(gt['snps'][:number_of_samples, :number_of_snps], dtype=torch.float64)
     elif suffix == '.csv':
         gt = pd.read_csv(arguments.x, index_col=0)
         identifiers = np.array(list(map(lambda a: a.split("_"), gt.columns.values)))
