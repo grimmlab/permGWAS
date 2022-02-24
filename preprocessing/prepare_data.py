@@ -79,7 +79,7 @@ def load_and_prepare_data(arguments: argparse.Namespace):
             X = None
         K, K_ids = load_files.load_kinship(arguments)
         K_index = (np.reshape(sample_ids[sample_index[1]],
-                                  (sample_ids[sample_index[1]].shape[0], 1)) == K_ids).nonzero()
+                              (sample_ids[sample_index[1]].shape[0], 1)) == K_ids).nonzero()
         if len(K_index[1]) == len(sample_index[1]):
             K = K[K_index[1], :][:, K_index[1]]
         else:
