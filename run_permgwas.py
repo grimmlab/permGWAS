@@ -3,6 +3,7 @@ import torch
 from pathlib import Path
 from preprocessing import prepare_data as prep
 from preprocessing import check_functions as check
+from preprocessing import load_files
 from perform_gwas import gwas
 from plot import plot
 import pandas as pd
@@ -35,6 +36,10 @@ if __name__ == "__main__":
     parser.add_argument('--maf', type=int, choices=range(0, 30), default=0,
                         help='specify minor allele frequency threshold as percentage value,'
                              'optional, if not provided no maf filtering will be performed')
+    parser.add_argument('--load_genotype', '--load_x', type=bool, default=False,
+                        help='If True, genotype matrix will be loaded completely during data load. If False, genotype '
+                             'matrix will be loaded batch-wise during computations of test statistics. '
+                             'Default is False')
     parser.add_argument('--perm', type=int,
                         help='specify the number of permutations (integer value) to be performed,'
                              'optional, if not provided no permutations will be performed')
@@ -78,8 +83,11 @@ if __name__ == "__main__":
     '''load data'''
     print('Checked if all specified files exist. Start loading data.')
     start = time.time()
-    X, y, K, covs, positions, chrom = prep.load_and_prepare_data(args)
-    X, positions, chrom, freq = prep.maf_filter(X, positions, chrom, args.maf)
+    X, y, K, covs, positions, chrom, X_index = prep.load_and_prepare_data(args)
+    if args.maf > 0:
+        if X is None:
+            X = load_files.load_data(args, sample_index=X_index)
+        X, positions, chrom, freq = prep.maf_filter(X, positions, chrom, args.maf)
     print('Loaded data, elapsed time: %f s.' % (time.time()-start))
     y = y.to(args.device)
     K = K.to(args.device)
@@ -87,31 +95,27 @@ if __name__ == "__main__":
         covs = covs.to(args.device)
 
     '''perform GWAS'''
-    print('Start performing GWAS on phenotype %s for %d SNPs and %d samples.' % (args.y_name, len(positions), len(y)))
+    m = len(positions)
+    print('Start performing GWAS on phenotype %s for %d SNPs and %d samples.' % (args.y_name, m, len(y)))
     start_gwas = time.time()
-    output = gwas.gwas(args, X, y, K, covs)
+    output = gwas.gwas(args, X, y, K, covs, X_index, m)
     df = pd.DataFrame({'CHR': chrom,
                        'POS': positions,
                        'p_value': output[:, 0],
                        'test_stat': output[:, 1],
-                       'maf': freq,
                        'SE': output[:, 2],
                        'effect_size': output[:, 3]})
     print('Done performing GWAS on phenotype %s for %d SNPs.\n '
-          'Elapsed time: %f s' % (args.y_name, len(positions), time.time()-start_gwas))
-    if arguments.device.type != "cpu":
+          'Elapsed time: %f s' % (args.y_name, m, time.time()-start_gwas))
+    if args.device.type != "cpu":
         with torch.cuda.device(args.device):
             torch.cuda.empty_cache()
 
     '''perform GWAS with permutations'''
     if args.perm is not None:
-        y = y.to(args.device)
-        K = K.to(args.device)
-        if covs is not None:
-            covs = covs.to(args.device)
         print('Start performing GWAS with %d permutations.' % args.perm)
         start_perm = time.time()
-        adjusted_p_val, min_p_val, my_seeds = gwas.perm_gwas(args, X, y, K, output[:, 1], covs)
+        adjusted_p_val, min_p_val, my_seeds = gwas.perm_gwas(args, X, y, K, output[:, 1], covs, X_index, m)
         df['adjusted_p_val'] = adjusted_p_val
         df_min = pd.DataFrame({'seed': my_seeds,
                                'min_p_val': min_p_val})

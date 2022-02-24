@@ -22,20 +22,17 @@ def load_genotype(arguments: argparse.Namespace):
         sample_ids = np.array(gt['fid'], dtype=np.int).flatten()
         positions = np.array(gt['pos']).flatten()
         chromosomes = np.array(gt['chrom']).flatten()
-        X = torch.tensor(gt.values, dtype=torch.float64)
     elif suffix in ('.h5', '.hdf5', '.h5py'):
         with h5py.File(arguments.x, "r") as gt:
             chromosomes = gt['chr_index'][:].astype(str)
             positions = gt['position_index'][:].astype(int)
             sample_ids = gt['sample_ids'][:].astype(int)
-            X = torch.tensor(gt['snps'][:], dtype=torch.float64)
     elif suffix == '.csv':
         gt = pd.read_csv(arguments.x, index_col=0)
         identifiers = np.array(list(map(lambda a: a.split("_"), gt.columns.values)))
         chromosomes = identifiers[:, 0]
         positions = identifiers[:, 1]
         sample_ids = np.asarray(gt.index)
-        X = torch.tensor(gt.values, dtype=torch.float64)
     elif suffix in ('map', 'ped'):
         x_file = arguments.x.with_suffix('').as_posix()
         with open(x_file + '.map', 'r') as f:
@@ -47,27 +44,66 @@ def load_genotype(arguments: argparse.Namespace):
                 positions.append(tmp[-1].strip())
         chromosomes = np.array(chromosomes)
         positions = np.array(positions)
-        iupac_map = {"AA": "A", "GG": "G", "TT": "T", "CC": "C", "AG": "R", "GA": "R", "CT": "Y", "TC": "Y", "GC": "S",
-                     "CG": "S", "AT": "W", "TA": "W", "GT": "K", "TG": "K", "AC": "M", "CA": "M"}
         with open(x_file + '.ped', 'r') as f:
             sample_ids = []
-            raw = []
             for line in f:
                 tmp = line.strip().split(" ")
                 sample_ids.append(int(tmp[1].strip()))
+        sample_ids = np.array(sample_ids)
+    else:
+        raise NotImplementedError('Only accept .h5, .hdf5, .h5py, .csv and binary PLINK genotype files')
+    return sample_ids, positions, chromosomes
+
+
+def load_data(arguments: argparse.Namespace, sample_index=None, snp_lower_index=None, snp_upper_index=None):
+    """
+    Load genotype matrix. Accepts PLink files, binary PLINK files, .csv and .h5, .hdf5, .h5py files. With .h5, .hdf5,
+    .h5py files it is possible to only load certain samples and SNPs.
+    :param arguments: user input
+    :param sample_index: either a list/np.array containing the indices of the samples to load from the genotype matrix,
+     or a single integer to load the genotype matrix from row 0 to row sample_index
+    :param snp_lower_index: lower bound of batch
+    :param snp_upper_index: upper bound of batch
+    :return: X
+    """
+    suffix = arguments.x.suffix
+    if suffix in ('.h5', '.hdf5', '.h5py'):
+        with h5py.File(arguments.x, "r") as gt:
+            if isinstance(sample_index, (np.ndarray, list)):
+                indices, inverse = np.unique(sample_index, return_inverse=True)
+                X = gt['snps'][indices, snp_lower_index:snp_upper_index]
+                X = torch.tensor(X[inverse, :], dtype=torch.float64)
+            else:
+                X = torch.tensor(gt['snps'][:sample_index, snp_lower_index:snp_upper_index], dtype=torch.float64)
+
+    elif suffix in ('.bed', '.bim', '.fam'):
+        x_file = arguments.x.with_suffix('').as_posix()
+        gt = read_plink1_bin(x_file + '.bed', x_file + '.bim',
+                             x_file + '.fam', ref="a0", verbose=False)
+        X = torch.tensor(gt.values, dtype=torch.float64)
+
+    elif suffix == '.csv':
+        gt = pd.read_csv(arguments.x, index_col=0)
+        X = torch.tensor(gt.values, dtype=torch.float64)
+
+    elif suffix in ('map', 'ped'):
+        x_file = arguments.x.with_suffix('').as_posix()
+        iupac_map = {"AA": "A", "GG": "G", "TT": "T", "CC": "C", "AG": "R", "GA": "R", "CT": "Y", "TC": "Y", "GC": "S",
+                     "CG": "S", "AT": "W", "TA": "W", "GT": "K", "TG": "K", "AC": "M", "CA": "M"}
+        with open(x_file + '.ped', 'r') as f:
+            raw = []
+            for line in f:
+                tmp = line.strip().split(" ")
                 snps = []
                 j = 6
                 while j < len(tmp) - 1:
                     snps.append(iupac_map[tmp[j] + tmp[j + 1]])
                     j += 2
                 raw.append(snps)
-        sample_ids = np.array(sample_ids)
         raw = np.array(raw)
         X = encode_homozygous(raw)
         # TODO encode heterozygous
-    else:
-        raise NotImplementedError('Only accept .h5, .hdf5, .h5py, .csv and binary PLINK genotype files')
-    return X, sample_ids, positions, chromosomes
+    return X
 
 
 def encode_homozygous(matrix: np.array):
@@ -127,7 +163,9 @@ def load_covariates(arguments: argparse.Namespace):
 
 def load_kinship(arguments: argparse.Namespace):
     """
-    load kinship matrix fom file. Only take .csv files. Sample ids have to be in first column
+    load kinship matrix fom file. Only take .csv, .h5, .hdf5, .h5py files.
+    For .csv files sample ids have to be in first column, .h5, .hdf5, .h5py files need to contain the kinship matrix
+    with key 'kinship' and the corresponding sample ids with key 'sample_ids'.
     :param arguments: user input
     :return: kinship matrix and sample ids
     """
@@ -135,6 +173,10 @@ def load_kinship(arguments: argparse.Namespace):
         kin = pd.read_csv(arguments.k, index_col=0)
         K = torch.tensor(kin.values)
         sample_ids = np.array(kin.index)
+    elif arguments.k.suffix in (".h5", ".hdf5", ".h5py"):
+        with h5py.File(arguments.k, "r") as f:
+            K = torch.tensor(f['kinship'][:], dtype=torch.float64)
+            sample_ids = f['sample_ids'][:].astype(int)
     else:
-        raise NotImplementedError('Only accept .csv kinship files')
+        raise NotImplementedError('Only accept .csv, .h5, .hdf5, .h5py kinship files')
     return K, sample_ids

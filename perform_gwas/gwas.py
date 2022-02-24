@@ -1,14 +1,15 @@
 # perform gwas, use sub functions
 import argparse
-
 import torch
 import numpy as np
 from itertools import repeat
 from perform_gwas import model, kin, perm
+from preprocessing import load_files
 import time
 
 
-def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: torch.tensor, covs: torch.tensor):
+def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: torch.tensor, covs: torch.tensor,
+         X_index: np.array, m: int):
     """
     perform gwas use subfunctions
     :param arguments: user input
@@ -16,11 +17,12 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
     :param y: phenotype vector of shape (n)
     :param K: kinship matrix of shape (n,n)
     :param covs: vector/matrix of covariates of shape (n,c), optional
+    :param X_index: indices of genotype matrix samples to load in batches
+    :param m: total number of SNPs to work on
     :return: p-value, F-score, standard error and effect size of each SNP
     """
     start = time.time()
-    n = X.shape[0]
-    m = X.shape[1]
+    n = y.shape[0]
     fixed = model.get_fixed_effects(arguments, covs, n)  # shape: (n,1) or (n,c+1)
     v_g, v_e = kin.estimate_variance_components(y, K, fixed)  # shape: (2)
     C = kin.get_cholesky(v_g * K + v_e * torch.eye(n, dtype=K.dtype, device=arguments.device))  # shape: (n,n)
@@ -34,7 +36,12 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
         upper_bound = (i + 1) * arguments.batch
         if upper_bound > m:
             upper_bound = m
-        X_batch = kin.transform_input(X[:, lower_bound:upper_bound].to(arguments.device), C)  # shape: (n,b)
+        if X is None:
+            X_batch = load_files.load_data(arguments, sample_index=X_index, snp_lower_index=lower_bound,
+                                           snp_upper_index=upper_bound)
+            X_batch = kin.transform_input(X_batch.to(arguments.device), C)  # shape: (n,b)
+        else:
+            X_batch = kin.transform_input(X[:, lower_bound:upper_bound].to(arguments.device), C)  # shape: (n,b)
         X_batch = model.get_x_batch(X_batch, fixed, lower_bound, upper_bound)  # shape: (b,n,2) or (b,n,c+2)
         RSS_1, SE, effSize = model.get_rss_and_se(X_batch, y_trans)
         F_score = model.get_f_score(RSS_0, RSS_1, n, freedom_deg)
@@ -57,9 +64,8 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
     return torch.cat((torch.tensor(p_val).unsqueeze(1), output), dim=1)
 
 
-
 def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: torch.tensor,
-              true_test_stats: torch.tensor, covs: torch.tensor):
+              true_test_stats: torch.tensor, covs: torch.tensor, X_index: np.array, m: int):
     """
     perform gwas with permutations, use subfunctions
     :param arguments: user input
@@ -68,11 +74,12 @@ def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K
     :param K: kinship matrix of shape (n,n)
     :param true_test_stats: test statistics of true observations for each SNP
     :param covs: vector/matrix of covariates of shape (n,c), optional
+    :param X_index: indices of genotype matrix samples to load in batches
+    :param m: total number of SNPs to work on
     :return: adjusted p-value for each SNP, minimal p-value for each permutation, permutation seeds
     """
     start = time.time()
-    n = X.shape[0]
-    m = X.shape[1]
+    n = y.shape[0]
     fixed = model.get_fixed_effects_perm(arguments, covs, n)  # shape: (p,n,1) or (p,n,c+1)
     y_perm, my_seeds = perm.permute_phenotype(y, arguments.perm)
     y_perm = y_perm.to(arguments.device)  # shape: (n,p)
@@ -100,8 +107,14 @@ def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K
         if upper_bound > m:
             upper_bound = m
         print("Calculate perm test statistics for SNPs %d to %d" % (lower_bound, upper_bound))
-        X_batch = kin.transform_input(model.get_v_batch(X[:, lower_bound:upper_bound].to(arguments.device),
-                                                        arguments.perm), C_perm)  # shape: (p,n,b)
+        if X is None:
+            X_batch = load_files.load_data(arguments, sample_index=X_index, snp_lower_index=lower_bound,
+                                           snp_upper_index=upper_bound)
+            X_batch = kin.transform_input(model.get_v_batch(X_batch.to(arguments.device),
+                                                            arguments.perm), C_perm)  # shape: (p,n,b)
+        else:
+            X_batch = kin.transform_input(model.get_v_batch(X[:, lower_bound:upper_bound].to(arguments.device),
+                                                            arguments.perm), C_perm)  # shape: (p,n,b)
         X_batch = model.get_x_batch_perm(X_batch, fixed, lower_bound, upper_bound)  # shape: (p,b,n,2) or (p,b,n,c+2)
         RSS = model.get_rss_perm(X_batch, y_perm)  # shape: (p,b)
         F_score = model.get_f_score(torch.t(RSS0.repeat(upper_bound-lower_bound, 1)), RSS, n, freedom_deg)  # shape: (p,b)

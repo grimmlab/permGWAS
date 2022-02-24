@@ -3,10 +3,17 @@ import argparse
 import sys
 import numpy as np
 import torch
-from preprocessing.load_files import load_genotype, load_phenotype, load_kinship, load_covariates
+from preprocessing import load_files
 
 
 def filter_non_informative_snps(X: np.array, pos: np.array, chrom: np.array):
+    """
+    Remove constant SNPs from genotype matrix
+    :param X:
+    :param pos:
+    :param chrom:
+    :return:
+    """
     tmp = np.where(X.std(axis=0) == 0)[0]
     X = np.delete(X, tmp, axis=1)
     pos = np.delete(pos, tmp, axis=0)
@@ -51,22 +58,28 @@ def load_and_prepare_data(arguments: argparse.Namespace):
     :param arguments: user input
     :return: genotype matrix, phenotype vector, kinship matrix, vector with SNP positions and corresponding chromosomes
     """
-    X, sample_ids, pos, chrom = load_genotype(arguments)
-    y = load_phenotype(arguments)
+    sample_ids, pos, chrom = load_files.load_genotype(arguments)
+    y = load_files.load_phenotype(arguments)
     y_ids = np.asarray(y.index, dtype=np.int).flatten()
     sample_index = (np.reshape(y_ids, (y_ids.shape[0], 1)) == sample_ids).nonzero()
     if len(sample_index[0]) == 0:
         print("Samples of genotype and phenotype do not match.")
         sys.exit()
-    X = X[sample_index[1], :]
     y = torch.tensor(y.values, dtype=torch.float64).flatten()[sample_index[0]]
-    X, pos, chrom = filter_non_informative_snps(X, pos, chrom)
+
     if arguments.k is None:
+        X = load_files.load_data(arguments, sample_index=sample_index[1])
+        X, pos, chrom = filter_non_informative_snps(X, pos, chrom)
         K = get_kinship(X)
     else:
-        K, K_ids = load_kinship(arguments)
+        if arguments.load_genotype:
+            X = load_files.load_data(arguments, sample_index=sample_index[1])
+            X, pos, chrom = filter_non_informative_snps(X, pos, chrom)
+        else:
+            X = None
+        K, K_ids = load_files.load_kinship(arguments)
         K_index = (np.reshape(sample_ids[sample_index[1]],
-                              (sample_ids[sample_index[1]].shape[0], 1)) == K_ids).nonzero()
+                                  (sample_ids[sample_index[1]].shape[0], 1)) == K_ids).nonzero()
         if len(K_index[1]) == len(sample_index[1]):
             K = K[K_index[1], :][:, K_index[1]]
         else:
@@ -76,7 +89,7 @@ def load_and_prepare_data(arguments: argparse.Namespace):
     if arguments.cov_file is None:
         covs = None
     else:
-        covs = load_covariates(arguments)
+        covs = load_files.load_covariates(arguments)
         covs_ids = np.asarray(covs.index, dtype=np.int).flatten()
         covs_index = (np.reshape(y_ids[sample_index[0]], (y_ids[sample_index[0]].shape[0], 1)) == covs_ids).nonzero()
         if len(covs_index[1]) == len(sample_index[0]):
@@ -84,7 +97,7 @@ def load_and_prepare_data(arguments: argparse.Namespace):
         else:
             print('Sample ids of covariates and phenotype do not match.')
             sys.exit()
-    return X, y, K, covs, pos, chrom
+    return X, y, K, covs, pos, chrom, sample_index[1]
 
 
 def maf_filter(X: np.array, positions: np.array, chrom: np.array, maf: int):
