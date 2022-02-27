@@ -72,7 +72,7 @@ def load_and_prepare_data(arguments: argparse.Namespace):
         X, pos, chrom = filter_non_informative_snps(X, pos, chrom)
         K = get_kinship(X)
     else:
-        if arguments.load_genotype:
+        if arguments.load_genotype or (arguments.x.suffix not in ('.h5', '.hdf5', '.h5py')):
             X = load_files.load_data(arguments, sample_index=sample_index[1])
             X, pos, chrom = filter_non_informative_snps(X, pos, chrom)
         else:

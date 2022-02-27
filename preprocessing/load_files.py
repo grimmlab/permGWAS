@@ -75,7 +75,7 @@ def load_data(arguments: argparse.Namespace, sample_index=None, snp_lower_index=
                 X = torch.tensor(X[inverse, :], dtype=torch.float64)
             else:
                 X = torch.tensor(gt['snps'][:sample_index, snp_lower_index:snp_upper_index], dtype=torch.float64)
-
+# TODO sample_index matchen bei nicht h5 dateinen
     elif suffix in ('.bed', '.bim', '.fam'):
         x_file = arguments.x.with_suffix('').as_posix()
         gt = read_plink1_bin(x_file + '.bed', x_file + '.bim',
