@@ -70,7 +70,7 @@ def get_rss_and_se(X: torch.tensor, y: torch.tensor):
     """
     y_batch = get_v_batch(y, X.shape[0])
     XT = torch.transpose(X, 1, 2)
-    XTX_inv = torch.inverse(torch.matmul(XT, X))
+    XTX_inv = torch.linalg.pinv(torch.matmul(XT, X), hermitian=True)
     beta = torch.matmul(torch.matmul(XTX_inv, XT), y_batch)
     dif = y_batch-torch.matmul(X, beta)
     diag = torch.diagonal(XTX_inv, dim1=1, dim2=2)[:, 1]

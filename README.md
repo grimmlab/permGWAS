@@ -91,8 +91,10 @@ For .txt files it is assumed that the values are separated by a single space.
 
 ### kinship file
 Per default permGWAS computes the realized relationship kernel as kinship matrix. 
-It is also possible to provide a kinship matrix. Currently, permGWAS only accepts .csv files as kinship file, where
-the first column contains the sample ids. The sample ids need to match those of the genotype matrix.
+It is also possible to provide a kinship matrix. Currently, permGWAS only accepts .csv, .h5, .hdf5, .h5py files as 
+kinship file.For .csv files the first column should contain the sample ids. For .h5, .hdf5, .h5py files the kinship 
+matrix should have the key 'kinship' and the corresponding sample ids the key 'sample_ids'
+The sample ids need to match those of the genotype matrix.
 
 ```shell
 python3 run_permgwas.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv --k ./data/k_matrix.csv
@@ -115,6 +117,7 @@ python3 run_permgwas.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv --cov ./dat
 |--y_name (--pt_name)| name of phenotype (column) to be used in phenotype file, optional, default is "phenotype_value"|
 |--k (--k_file, --kinship) | absolute or relative path to kinship file, optional|
 |--cov (--cov_file) | absolute or relative path to covariates file, optional|
+|--load_genotype (--load_x) | choose whether to load full genotype file or not, optional, default is False|
 |--maf | minor allele frequency threshold as percentage value, optional, default is 0|
 |--perm | number of permutations to be performed, optional, default is 0|
 |--out_dir | name of the directory result-files should be stored in, optional, if not provided, files will be stored in folder "results" in current directory|
