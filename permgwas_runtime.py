@@ -81,6 +81,9 @@ if __name__ == "__main__":
         print('GPU is not available. Perform computations on device ', dev)
     args.device = torch.device(dev)
 
+    if dev != "cpu":
+        dev = "gpu"  # variable needed to save experiments
+
     if args.experiment == 'snps':
         print('Perform runtime experiment on number of snps.')
         # set parameters for runtime experiment
@@ -99,7 +102,7 @@ if __name__ == "__main__":
                                    'time': runtime[:, 1]})
             df_run.to_csv(
                 args.out_dir.joinpath('runtime_snps_' + str(number_of_samples) + '_samples_' + str(snps) + '_snps_' +
-                                      str(args.perm) + '_permutations.csv'), index=False)
+                                      str(args.perm) + '_permutations_' + dev + '_.csv'), index=False)
     elif args.experiment == 'samples':
         print('Perform runtime experiment on number of samples.')
         # set parameters for runtime experiment
@@ -117,7 +120,7 @@ if __name__ == "__main__":
                                    'time': runtime[:, 1]})
             df_run.to_csv(
                 args.out_dir.joinpath('runtime_samples_' + str(samples) + '_samples_' + str(number_of_snps) + '_snps_' +
-                                      str(args.perm) + '_permutations.csv'), index=False)
+                                      str(args.perm) + '_permutations_' + dev + '_.csv'), index=False)
 
     elif args.experiment == 'perm':
         print('Perform runtime experiment on number of permutations.')
@@ -139,4 +142,4 @@ if __name__ == "__main__":
                                    'time': runtime[:, 1]})
             df_run.to_csv(
                 args.out_dir.joinpath('runtime_perm_' + str(number_of_samples) + '_samples_' + str(number_of_snps) +
-                                      '_snps_' + str(args.perm) + '_permutations.csv'), index=False)
+                                      '_snps_' + str(args.perm) + '_permutations_' + dev + '_.csv'), index=False)
