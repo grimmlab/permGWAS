@@ -52,13 +52,17 @@ def normalize_kinship(K: np.array):
     return (n-1)/torch.sum(torch.mul(P, K))*K
 
 
-def load_and_prepare_data(arguments: argparse.Namespace):
+def load_and_prepare_data(arguments: argparse.Namespace, number_of_samples=None, number_of_snps=None):
     """
     load and match genotype and phenotype and covariates, load/create kinship matrix
     :param arguments: user input
+    :param number_of_samples: if genotype is .h5 file, it is possible to restrict number of samples to load, i.e.
+                                load only sample 0 to number_of_samples
+    :param number_of_snps: if genotype is .h5 file, it is possible to restrict number of snps to load, i.e.
+                                load only sample 0 to number_of_snps
     :return: genotype matrix, phenotype vector, kinship matrix, vector with SNP positions and corresponding chromosomes
     """
-    sample_ids, pos, chrom = load_files.load_genotype(arguments)
+    sample_ids, pos, chrom = load_files.load_genotype(arguments, number_of_samples, number_of_snps)
     y = load_files.load_phenotype(arguments)
     y_ids = np.asarray(y.index, dtype=np.int).flatten()
     sample_index = (np.reshape(y_ids, (y_ids.shape[0], 1)) == sample_ids).nonzero()
@@ -68,12 +72,12 @@ def load_and_prepare_data(arguments: argparse.Namespace):
     y = torch.tensor(y.values, dtype=torch.float64).flatten()[sample_index[0]]
 
     if arguments.k is None:
-        X = load_files.load_data(arguments, sample_index=sample_index[1])
+        X = load_files.load_data(arguments, sample_index=sample_index[1], snp_upper_index=number_of_snps)
         X, pos, chrom = filter_non_informative_snps(X, pos, chrom)
         K = get_kinship(X)
     else:
         if arguments.load_genotype or (arguments.x.suffix not in ('.h5', '.hdf5', '.h5py')):
-            X = load_files.load_data(arguments, sample_index=sample_index[1])
+            X = load_files.load_data(arguments, sample_index=sample_index[1], snp_upper_index=number_of_snps)
             X, pos, chrom = filter_non_informative_snps(X, pos, chrom)
         else:
             X = None

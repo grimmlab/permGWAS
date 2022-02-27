@@ -1,13 +1,10 @@
 import argparse
+import numpy as np
+import pandas as pd
 import torch
 from pathlib import Path
-from preprocessing import prepare_data as prep
 from preprocessing import check_functions as check
-from preprocessing import load_files
-from perform_gwas import gwas
-from plot import plot
-import pandas as pd
-import time
+from runtime_experiments import permgwas
 
 
 if __name__ == "__main__":
@@ -43,22 +40,20 @@ if __name__ == "__main__":
     parser.add_argument('--perm', type=int,
                         help='specify the number of permutations (integer value) to be performed,'
                              'optional, if not provided no permutations will be performed')
-    parser.add_argument('--out_dir', type=str, default=Path.cwd().joinpath('results'),
-                        help='optional, if not provided, files will be stored in folder "results" in current directory,'
-                             'specify the name of the directory result-files should be stored in,'
+    parser.add_argument('--out_dir', type=str, default=Path.cwd().joinpath('results/runtime'),
+                        help='optional, if not provided, files will be stored in folder "results/runtime" in current '
+                             'directory, specify the name of the directory result-files should be stored in,'
                              'absolute and relative paths are accepted')
     parser.add_argument('--out_file', type=str,
                         help='specify NAME of result files, will be stored as NAME_p_values and NAME_min_p_values,'
                              'optional, if not provided name of phenotype will be used')
     parser.add_argument('--device', type=int, default=0,
                         help='specify GPU device to be used, default is 0')
-    parser.add_argument('--batch', type=int, default=50000,
+    parser.add_argument('--batch', type=int, default=450000,
                         help='specify number of SNPs to work on simultaneously, default is 50000')
-    parser.add_argument('--batch_perm', type=int, default=1000,
+    parser.add_argument('--batch_perm', type=int, default=5500,
                         help='specify number of SNPs to work on simultaneously while using permutations, '
                              'default is 1000')
-    parser.add_argument('--plot', action='store_true',
-                        help='optional, creates manhattan plot')
 
     args = parser.parse_args()
 
@@ -70,6 +65,7 @@ if __name__ == "__main__":
     args.k = check.check_file_paths(args.k)
     args.cov_file = check.check_file_paths(args.cov_file)
     args.out_dir = check.check_dir_paths(arg=args)
+    print('Checked if all specified files exist.')
 
     '''check if GPU is available'''
     if torch.cuda.is_available():
@@ -80,57 +76,17 @@ if __name__ == "__main__":
         print('GPU is not available. Perform computations on device ', dev)
     args.device = torch.device(dev)
 
-    '''load data'''
-    print('Checked if all specified files exist. Start loading data.')
-    start = time.time()
-    X, y, K, covs, positions, chrom, X_index = prep.load_and_prepare_data(args)
-    if args.maf > 0:
-        if X is None:
-            X = load_files.load_data(args, sample_index=X_index)
-        X, positions, chrom, freq = prep.maf_filter(X, positions, chrom, args.maf)
-    print('Loaded data, elapsed time: %f s.' % (time.time()-start))
-    y = y.to(args.device)
-    K = K.to(args.device)
-    if covs is not None:
-        covs = covs.to(args.device)
-
-    '''perform GWAS'''
-    m = len(positions)
-    print('Start performing GWAS on phenotype %s for %d SNPs and %d samples.' % (args.y_name, m, len(y)))
-    start_gwas = time.time()
-    output = gwas.gwas(args, X, y, K, covs, X_index, m)
-    df = pd.DataFrame({'CHR': chrom,
-                       'POS': positions,
-                       'p_value': output[:, 0],
-                       'test_stat': output[:, 1],
-                       'SE': output[:, 2],
-                       'effect_size': output[:, 3]})
-    print('Done performing GWAS on phenotype %s for %d SNPs.\n '
-          'Elapsed time: %f s' % (args.y_name, m, time.time()-start_gwas))
-    if args.device.type != "cpu":
-        with torch.cuda.device(args.device):
-            torch.cuda.empty_cache()
-
-    '''perform GWAS with permutations'''
+    print('Start single runtime experiment on phenotype ' + args.y_name)
+    runtime = []
+    for run in range(3):
+        print('start run ' + str(run + 1) + ' of 3')
+        runtime = runtime + permgwas.permgwas(args)
+    runtime = np.array(runtime)
+    df_run = pd.DataFrame({'label': runtime[:, 0],
+                           'time': runtime[:, 1]})
     if args.perm is not None:
-        print('Start performing GWAS with %d permutations.' % args.perm)
-        start_perm = time.time()
-        adjusted_p_val, min_p_val, my_seeds = gwas.perm_gwas(args, X, y, K, output[:, 1], covs, X_index, m)
-        df['adjusted_p_val'] = adjusted_p_val
-        df_min = pd.DataFrame({'seed': my_seeds,
-                               'min_p_val': min_p_val})
-        df_min.to_csv(args.out_dir.joinpath(args.out_file + '_min_p_values.csv'), index=False)
-        print('Done performing GWAS with %d permutations.'
-              'Elapsed time: %f s' % (args.perm, time.time()-start_perm))
-
-    '''save p values'''
-    df.to_csv(args.out_dir.joinpath(args.out_file + '_p_values.csv'), index=False)
-    print('Total time: ', time.time()-start)
-
-    '''create manhattan plot'''
-    if args.plot is True:
-        out = args.out_file.joinpath(args.file_name)
-        if args.perm is None:
-            plot.create_manhattan(df, args)
-        else:
-            plot.create_manhattan(df, args, df_min=df_min)
+        df_run.to_csv(args.out_dir.joinpath('runtime_' + str(args.x.stem) + '_' + str(args.y_name) + '_' +
+                                            str(args.perm) + '_permutations.csv'), index=False)
+    else:
+        df_run.to_csv(args.out_dir.joinpath('runtime_' + str(args.x.stem) + '_' + str(args.y_name) + '.csv'),
+                      index=False)

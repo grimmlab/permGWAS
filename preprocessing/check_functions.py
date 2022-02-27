@@ -43,7 +43,7 @@ def make_dir_path(arg):
     :param arg: argparse.Namespace
     :return: path object
     """
-    my_path = Path(arg.out_dir).joinpath('runtime')
+    my_path = Path(arg.out_dir)
     if not my_path.is_dir():
         my_path.mkdir(parents=True, exist_ok=True)
     return my_path

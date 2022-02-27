@@ -73,6 +73,7 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
     print("Have P-values. Elapsed time: ", time_pval-time_test_stats)
     return torch.cat((torch.tensor(p_val).unsqueeze(1), output), dim=1), runtime
 
+
 def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: torch.tensor,
               true_test_stats: torch.tensor, covs: torch.tensor, X_index: np.array, m: int):
     """
