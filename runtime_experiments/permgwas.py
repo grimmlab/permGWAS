@@ -51,7 +51,7 @@ def permgwas(args, number_of_samples=None, number_of_snps=None):
             torch.cuda.empty_cache()
 
     # perform GWAS with permutations
-    if args.perm is not None:
+    if args.perm > 0:
         print('Start performing GWAS with %d permutations.' % args.perm)
         start_perm = time.time()
         adjusted_p_val, min_p_val, my_seeds, runtime_gwas = gwas.perm_gwas(args, X, y, K, output[:, 1], covs, X_index, m)

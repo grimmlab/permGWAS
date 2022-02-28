@@ -37,7 +37,7 @@ if __name__ == "__main__":
     parser.add_argument('--maf', type=int, choices=range(0, 30), default=0,
                         help='specify minor allele frequency threshold as percentage value,'
                              'optional, if not provided no maf filtering will be performed')
-    parser.add_argument('--perm', type=int,
+    parser.add_argument('--perm', type=int, default=0,
                         help='specify the number of permutations (integer value) to be performed,'
                              'optional, if not provided no permutations will be performed')
     parser.add_argument('--out_dir', type=str, default=Path.cwd().joinpath('results/runtime'),
@@ -102,7 +102,7 @@ if __name__ == "__main__":
                                    'time': runtime[:, 1]})
             df_run.to_csv(
                 args.out_dir.joinpath('runtime_snps_' + str(number_of_samples) + '_samples_' + str(snps) + '_snps_' +
-                                      str(args.perm) + '_permutations_' + dev + '_.csv'), index=False)
+                                      str(args.perm) + '_permutations_' + dev + '.csv'), index=False)
     elif args.experiment == 'samples':
         print('Perform runtime experiment on number of samples.')
         # set parameters for runtime experiment
@@ -120,7 +120,7 @@ if __name__ == "__main__":
                                    'time': runtime[:, 1]})
             df_run.to_csv(
                 args.out_dir.joinpath('runtime_samples_' + str(samples) + '_samples_' + str(number_of_snps) + '_snps_' +
-                                      str(args.perm) + '_permutations_' + dev + '_.csv'), index=False)
+                                      str(args.perm) + '_permutations_' + dev + '.csv'), index=False)
 
     elif args.experiment == 'perm':
         print('Perform runtime experiment on number of permutations.')
@@ -142,4 +142,4 @@ if __name__ == "__main__":
                                    'time': runtime[:, 1]})
             df_run.to_csv(
                 args.out_dir.joinpath('runtime_perm_' + str(number_of_samples) + '_samples_' + str(number_of_snps) +
-                                      '_snps_' + str(args.perm) + '_permutations_' + dev + '_.csv'), index=False)
+                                      '_snps_' + str(args.perm) + '_permutations_' + dev + '.csv'), index=False)
