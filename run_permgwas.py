@@ -37,7 +37,7 @@ if __name__ == "__main__":
                         help='If True, genotype matrix will be loaded completely during data load. If False, genotype '
                              'matrix will be loaded batch-wise during computations of test statistics. '
                              'Default is False')
-    parser.add_argument('--perm', type=int,
+    parser.add_argument('--perm', type=int, default=0,
                         help='specify the number of permutations (integer value) to be performed,'
                              'optional, if not provided no permutations will be performed')
     parser.add_argument('--out_dir', type=str, default=Path.cwd().joinpath('results/runtime'),
