@@ -88,7 +88,7 @@ if __name__ == "__main__":
         print('Perform runtime experiment on number of snps.')
         # set parameters for runtime experiment
         list_of_snps = np.append(np.append(np.arange(10000, 100000, 5000), np.arange(100000, 1000000, 50000)),
-                                 np.arange(500000, 5500000, 500000))
+                                 np.arange(1000000, 5500000, 500000))
         number_of_samples = 1000
         for snps in list_of_snps:
             print('Start experiment with %s samples and %s snps' % (number_of_samples, snps))
