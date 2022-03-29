@@ -55,42 +55,49 @@ def normalize_kinship(K: np.array):
 def load_and_prepare_data(arguments: argparse.Namespace):
     """
     load and match genotype and phenotype and covariates, load/create kinship matrix
+    If kinship is provided and genotype file is in (.h5, .h5py, .hdf5) it is possible to load genotype matrix batch wise
+    during computations to save memory.
     :param arguments: user input
     :return: genotype matrix, phenotype vector, kinship matrix, vector with SNP positions and corresponding chromosomes
     """
-    sample_ids, pos, chrom = load_files.load_genotype(arguments)
+    # load and match genotype ids and phenotype
+    sample_ids, pos, chrom = load_files.load_genotype_ids(arguments)
     y = load_files.load_phenotype(arguments)
-    y_ids = np.asarray(y.index, dtype=np.int).flatten()
+    y_ids = np.asarray(y.index, dtype=sample_ids.dtype).flatten()
     sample_index = (np.reshape(y_ids, (y_ids.shape[0], 1)) == sample_ids).nonzero()
     if len(sample_index[0]) == 0:
         print("Samples of genotype and phenotype do not match.")
         sys.exit()
     y = torch.tensor(y.values, dtype=torch.float64).flatten()[sample_index[0]]
 
+    # check if kinship is provided if not, load genotype and create kinship
     if arguments.k is None:
-        X = load_files.load_data(arguments, sample_index=sample_index[1])
+        X = load_files.load_genotype_matrix(arguments, sample_index=sample_index[1])
         X, pos, chrom = filter_non_informative_snps(X, pos, chrom)
         K = get_kinship(X)
+    # load genotype if needed
     else:
         if arguments.load_genotype or (arguments.x.suffix not in ('.h5', '.hdf5', '.h5py')):
-            X = load_files.load_data(arguments, sample_index=sample_index[1])
+            X = load_files.load_genotype_matrix(arguments, sample_index=sample_index[1])
             X, pos, chrom = filter_non_informative_snps(X, pos, chrom)
         else:
             X = None
+        # load kinship from file if needed
         K, K_ids = load_files.load_kinship(arguments)
-        K_index = (np.reshape(sample_ids[sample_index[1]],
-                              (sample_ids[sample_index[1]].shape[0], 1)) == K_ids).nonzero()
+        K_index = (np.reshape(sample_ids[sample_index[1]], (sample_ids[sample_index[1]].shape[0], 1)) == K_ids).nonzero()
         if len(K_index[1]) == len(sample_index[1]):
             K = K[K_index[1], :][:, K_index[1]]
         else:
             print("Sample ids of genotype and kinship matrix do not match.")
             sys.exit()
+    # normalize kinship matrix
     K = normalize_kinship(K)
+    # load and match covariates if provided
     if arguments.cov_file is None:
         covs = None
     else:
         covs = load_files.load_covariates(arguments)
-        covs_ids = np.asarray(covs.index, dtype=np.int).flatten()
+        covs_ids = np.asarray(covs.index, dtype=y_ids.dtype).flatten()
         covs_index = (np.reshape(y_ids[sample_index[0]], (y_ids[sample_index[0]].shape[0], 1)) == covs_ids).nonzero()
         if len(covs_index[1]) == len(sample_index[0]):
             covs = torch.tensor(covs.values, dtype=torch.float64).flatten()[covs_index[1]]

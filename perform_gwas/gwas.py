@@ -37,7 +37,7 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
         if upper_bound > m:
             upper_bound = m
         if X is None:
-            X_batch = load_files.load_data(arguments, sample_index=X_index, snp_lower_index=lower_bound,
+            X_batch = load_files.load_genotype_matrix(arguments, sample_index=X_index, snp_lower_index=lower_bound,
                                            snp_upper_index=upper_bound)
             X_batch = kin.transform_input(X_batch.to(arguments.device), C)  # shape: (n,b)
         else:
@@ -108,7 +108,7 @@ def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K
             upper_bound = m
         print("Calculate perm test statistics for SNPs %d to %d" % (lower_bound, upper_bound))
         if X is None:
-            X_batch = load_files.load_data(arguments, sample_index=X_index, snp_lower_index=lower_bound,
+            X_batch = load_files.load_genotype_matrix(arguments, sample_index=X_index, snp_lower_index=lower_bound,
                                            snp_upper_index=upper_bound)
             X_batch = kin.transform_input(model.get_v_batch(X_batch.to(arguments.device),
                                                             arguments.perm), C_perm)  # shape: (p,n,b)

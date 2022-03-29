@@ -123,7 +123,7 @@ def get_v_batch_perm(v: torch.tensor, batchsize: int):
     """
     :param v: tensor of dim (p,n,1) or (p,n,c)
     :param batchsize:
-    :return: tensor of copies of v with dim (b,p,n,1) or (b,p,n,c)
+    :return: tensor of copies of v with dim (p,b,n,1) or (p,b,n,c)
     """
     return torch.transpose(v.repeat(batchsize, 1, 1, 1), dim0=0, dim1=1)
 
