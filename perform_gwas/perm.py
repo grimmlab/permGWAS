@@ -51,7 +51,11 @@ def get_perm_p_value(perm_test_stats, true_test_stats):
     sorted_test_stats, ind = torch.sort(perm_test_stats.flatten())
     n = sorted_test_stats.shape[0]
     test_stats_ind = torch.searchsorted(sorted_test_stats.contiguous(), true_test_stats.contiguous(), right=True)
-    return (n - test_stats_ind) / n
+    if test_stats_ind == n:
+        adj_p_value = 1 / n
+    else:
+        adj_p_value = (n - test_stats_ind) / n
+    return adj_p_value
 
 
 def get_min_p_value(test_stats, n, freedom_deg):

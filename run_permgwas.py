@@ -86,7 +86,7 @@ if __name__ == "__main__":
     X, y, K, covs, positions, chrom, X_index = prep.load_and_prepare_data(args)
     if args.maf > 0:
         if X is None:
-            X = load_files.load_data(args, sample_index=X_index)
+            X = load_files.load_genotype_matrix(args, sample_index=X_index)
         X, positions, chrom, freq = prep.maf_filter(X, positions, chrom, args.maf)
     print('Loaded data, elapsed time: %f s.' % (time.time()-start))
     y = y.to(args.device)
@@ -105,7 +105,7 @@ if __name__ == "__main__":
                        'test_stat': output[:, 1],
                        'SE': output[:, 2],
                        'effect_size': output[:, 3]})
-    print('Done performing GWAS on phenotype %s for %d SNPs.\n '
+    print('Done performing GWAS on phenotype %s for %d SNPs.\n'
           'Elapsed time: %f s' % (args.y_name, m, time.time()-start_gwas))
     if args.device.type != "cpu":
         with torch.cuda.device(args.device):

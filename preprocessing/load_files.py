@@ -38,7 +38,7 @@ def load_genotype_ids(arguments: argparse.Namespace):
         positions = identifiers[:, 1]
         sample_ids = np.asarray(gt.index, dtype=str)
     # load PLINK
-    elif suffix in ('map', 'ped'):
+    elif suffix in ('.map', '.ped'):
         x_file = arguments.x.with_suffix('').as_posix()
         with open(x_file + '.map', 'r') as f:
             chromosomes = []
@@ -93,7 +93,7 @@ def load_genotype_matrix(arguments: argparse.Namespace, sample_index=None, snp_l
             gt = pd.read_csv(arguments.x, index_col=0)
             X = torch.tensor(gt.values, dtype=torch.float64)
         # load PLINK
-        elif suffix in ('map', 'ped'):
+        elif suffix in ('.map', '.ped'):
             x_file = arguments.x.with_suffix('').as_posix()
             iupac_map = {"AA": "A", "GG": "G", "TT": "T", "CC": "C", "AG": "R", "GA": "R", "CT": "Y", "TC": "Y",
                          "GC": "S", "CG": "S", "AT": "W", "TA": "W", "GT": "K", "TG": "K", "AC": "M", "CA": "M"}
