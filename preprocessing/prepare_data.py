@@ -6,13 +6,13 @@ import torch
 from preprocessing import load_files
 
 
-def filter_non_informative_snps(X: np.array, pos: np.array, chrom: np.array):
+def filter_non_informative_snps(X: torch.tensor, pos: np.array, chrom: np.array):
     """
     Remove constant SNPs from genotype matrix
-    :param X:
-    :param pos:
-    :param chrom:
-    :return:
+    :param X: genotype matrix
+    :param pos: vector containing positions
+    :param chrom: vector containing chromosomes
+    :return: X, positions, chromosomes
     """
     tmp = np.where(X.std(axis=0) == 0)[0]
     X = np.delete(X, tmp, axis=1)
@@ -21,15 +21,15 @@ def filter_non_informative_snps(X: np.array, pos: np.array, chrom: np.array):
     return X, pos, chrom
 
 
-def standardize_matrix(matrix: np.array):
+def standardize_matrix(matrix: torch.tensor):
     """
-    :param matrix:
+    :param matrix: genotype matrix
     :return: matrix with zero mean and unit variance
     """
     return (matrix-matrix.mean(axis=0))/matrix.std(axis=0)
 
 
-def get_kinship(X: np.array):
+def get_kinship(X: torch.tensor):
     """
     compute realized relationship matrix
     :param X: genotype matrix in additive encoding
@@ -41,7 +41,7 @@ def get_kinship(X: np.array):
     return torch.where(K > 0, K, 0.)
 
 
-def normalize_kinship(K: np.array):
+def normalize_kinship(K: torch.tensor):
     """
     normalize K using a Gower's centered matrix
     :param K: kinship matrix
@@ -84,7 +84,8 @@ def load_and_prepare_data(arguments: argparse.Namespace):
             X = None
         # load kinship from file if needed
         K, K_ids = load_files.load_kinship(arguments)
-        K_index = (np.reshape(sample_ids[sample_index[1]], (sample_ids[sample_index[1]].shape[0], 1)) == K_ids).nonzero()
+        K_index = (np.reshape(sample_ids[sample_index[1]],
+                              (sample_ids[sample_index[1]].shape[0], 1)) == K_ids).nonzero()
         if len(K_index[1]) == len(sample_index[1]):
             K = K[K_index[1], :][:, K_index[1]]
         else:
@@ -123,9 +124,8 @@ def use_maf_filter(X: torch.tensor, positions: np.array, chrom: np.array, maf: i
     :param X: genotype matrix
     :param positions: SNP positions
     :param chrom: SNP chromosomes
-    :param freq: vector containing minor allele frequencies
     :param maf: maf threshold
-    :return: filtered genotype matrix and vector with SNP positions
+    :return: filtered genotype matrix and vectors with SNP positions and chromosomes
     """
     freq = get_maf(X)
     tmp = np.where(freq <= maf/100)[0]

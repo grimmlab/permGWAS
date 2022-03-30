@@ -5,8 +5,15 @@ from numpy_sugar import is_all_finite
 from glimix_core.lmm import LMM
 
 
-# TODO without limix
 def estimate_variance_components(y: torch.tensor, K: torch.tensor, fixed_eff: torch.tensor, verbose=False):
+    """
+    Function to estimate variance components, using the packages numpy_sugar and glimix_core
+    :param y: phenotype vector
+    :param K: Kinship matrix
+    :param fixed_eff: matrix of fixed effects containing intercept and covariates
+    :param verbose:
+    :return: variance components v_g and v_e
+    """
     y_c = y.to(torch.device("cpu"))
     K_c = K.to(torch.device("cpu"))
     fixed_c = fixed_eff.to(torch.device("cpu"))

@@ -101,7 +101,7 @@ if __name__ == "__main__":
     print('Start performing GWAS on phenotype %s for %d SNPs and %d samples.' % (args.y_name, m, len(y)))
     start_gwas = time.time()
     if X is not None:
-        output,_ = gwas.gwas(args, X, y, K, covs, X_index, m)
+        output, _ = gwas.gwas(args, X, y, K, covs, X_index, m)
     else:
         output, freq = gwas.gwas(args, X, y, K, covs, X_index, m)
     df = pd.DataFrame({'CHR': chrom,

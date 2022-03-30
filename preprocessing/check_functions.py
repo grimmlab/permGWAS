@@ -3,9 +3,9 @@ from pathlib import Path
 
 def check_file_paths(file_path):
     """
-    check if specified files exist
+    check if specified input file exists, raises Exception if not
     :param file_path: absolute or relative path
-    :return: path object
+    :return: path object if file exists
     """
     if file_path is None:
         return file_path
@@ -19,10 +19,12 @@ def check_file_paths(file_path):
 
 def check_dir_paths(arg):
     """
-    check if directory for result files exists, if not, create directory, check if result files already exist
+    check if directory for result files exists, if not, create directory.
+    Then check if result files already exist, if they already exist, raises Exception
     :param arg: argparse.Namespace
     :return: path object
     """
+    # TODO
     my_path = Path(arg.out_dir)
     if my_path.is_dir():
         if my_path.joinpath(arg.out_file+'_p_values.csv').exists():

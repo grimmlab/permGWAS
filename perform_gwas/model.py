@@ -9,7 +9,7 @@ from perform_gwas.kin import transform_input
 # functions for EMMAX
 def get_fixed_effects(arguments: argparse.Namespace, covs: torch.tensor, n: int):
     """
-    check for covariates
+    check for covariates and create fixed effects vector
     :param arguments: user input
     :param covs: vector or matrix of covariates or None
     :param n: number of samples
@@ -25,6 +25,7 @@ def get_fixed_effects(arguments: argparse.Namespace, covs: torch.tensor, n: int)
 
 def get_v_batch(v: torch.tensor, batchsize: int):
     """
+    create copies of input tensor
     :param v: vector of length n or matrix of dim (n,c)
     :param batchsize:
     :return: tensor of copies of v with dim (batchsize,n,1) or (batchsize,n,c)
@@ -37,6 +38,7 @@ def get_v_batch(v: torch.tensor, batchsize: int):
 
 def get_x_batch(X: torch.tensor, fixedEff: torch.tensor, lower_bound: int, upper_bound: int):
     """
+    create 3D tensor where each matrix in the tensor contains the same fixed effects and a different SNP
     :param X: nxm genotype matrix
     :param fixedEff: nxc matrix of fixed effects
     :param lower_bound: lower bound of batch
@@ -63,10 +65,13 @@ def get_rss_h0(y: torch.tensor, fixedEff: torch.tensor):
 
 def get_rss_and_se(X: torch.tensor, y: torch.tensor):
     """
-    compute residual sum of squares
-    :param X:
-    :param y:
-    :return:
+    in batches:
+    First estimate coefficients beta
+    Then compute residual sum of squares of alternative hypothesis: marker has effect on phenotype
+    Also compute standard error SE
+    :param X: fixed effects matrix containing intercept, covariates and several markers in batches
+    :param y: phenotype values
+    :return: residual sum of squares, standard error and effect size in batches
     """
     y_batch = get_v_batch(y, X.shape[0])
     XT = torch.transpose(X, 1, 2)
@@ -82,6 +87,7 @@ def get_rss_and_se(X: torch.tensor, y: torch.tensor):
 
 def get_f_score(rss0: torch.tensor, rss1: torch.tensor, n: int, freedom_deg: int):
     """
+    compute test statistics in batches
     :param rss0: residual sum of squares of H0: marker has no effect on phenotype
     :param rss1: residual sum of squares of H1: marker has effect on phenotype
     :param n: number of samples
@@ -105,7 +111,7 @@ def get_p_value(f1: float, n: int, freedom_deg: int):
 # functions for EMMAXperm
 def get_fixed_effects_perm(arguments: argparse.Namespace, covs: torch.tensor, n: int):
     """
-        check for covariates
+        check for covariates and create fixed effects tensor
         :param arguments: user input
         :param covs: vector or matrix of covariates or None
         :param n: number of samples
@@ -121,6 +127,7 @@ def get_fixed_effects_perm(arguments: argparse.Namespace, covs: torch.tensor, n:
 
 def get_v_batch_perm(v: torch.tensor, batchsize: int):
     """
+    create copies of input tensor
     :param v: tensor of dim (p,n,1) or (p,n,c)
     :param batchsize:
     :return: tensor of copies of v with dim (p,b,n,1) or (p,b,n,c)
@@ -130,6 +137,8 @@ def get_v_batch_perm(v: torch.tensor, batchsize: int):
 
 def get_x_batch_perm(X: torch.tensor, fixedEff: torch.tensor, lower: int, upper: int):
     """
+    create 4D tensor that contains copies of a 3D tensors that contains matrices with the same fixed effects and a
+    different SNP each
     :param X: tensor of dim (p,n,m) containing a matrix X for each permutation
     :param fixedEff: tensor of dim (p,n,1) or (p,n,c)
     :param lower: boundary
@@ -156,10 +165,10 @@ def get_rss_h0_perm(y: torch.tensor, fixedEff: torch.tensor):
 
 def get_rss_perm(X: torch.tensor, y: torch.tensor):
     """
-    compute residual sum of squares
+    compute residual sum of squares of alternative hypothesis with permutations
     :param X: genotype matrix
     :param y: phenotype vector
-    :return:
+    :return: RSS
     """
     y_batch = get_v_batch_perm(y, X.shape[1])
     XT = torch.transpose(X, dim0=2, dim1=3)

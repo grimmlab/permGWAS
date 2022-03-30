@@ -9,9 +9,21 @@ from pandas_plink import read_plink1_bin
 
 def load_genotype_ids(arguments: argparse.Namespace):
     """
-    Function to load sample ids and chromosome and position identifier of genotype.
+    Function to load sample ids and chromosome and position identifiers of genotype.
     Takes PLINK files, binary PLINK files, .csv and .h5, .hdf5, .h5py files as input
     for binary PLINK files: need either "NAME.bed", "NAME.bim" or "NAME.fam", all need to be in same folder
+    Raises Exception if not the right file type
+    h5/hdf5/h5py files need to have the following structure:
+        snps:           genotype values in additive encoding (012) with samples as rows and markers as columns
+        sample_ids:     sample identifier in the same order as the rows of the genotype matrix
+        chr_index:      chromosome identifier in the same order as the columns of the genotype matrix
+        position_index: position number (integer) in the same order as the columns of the genotype matrix
+    csv files need to have the following structure:
+        sample identifier in the first column
+        SNP identifier in the first row need to be formatted as CHROMOSOME_POSITION
+        genotype values in additive encoding in the remaining rows and columns
+    For PLINK binary files GENOTYPE.bed, GENOTYPE.bim, GENOTYPE.fam need to be in same folder
+    For PLINK files GENOTYPE.ped and GENOTYPE.map files need to be in same folder
     :param arguments: user input
     :return: sample ids, SNP positions and chromosomes
     """
@@ -65,6 +77,17 @@ def load_genotype_matrix(arguments: argparse.Namespace, sample_index=None, snp_l
     Load genotype matrix. Accepts PLINK files, binary PLINK files, .csv and .h5, .hdf5, .h5py files.
     For .h5, .hdf5, .h5py files it is possible to only load certain samples and SNPs batch wise.
     For all other files genotype will be loaded completely but only needed samples will be returned
+    h5/hdf5/h5py files need to have the following structure:
+        snps:           genotype values in additive encoding (012) with samples as rows and markers as columns
+        sample_ids:     sample identifier in the same order as the rows of the genotype matrix
+        chr_index:      chromosome identifier in the same order as the columns of the genotype matrix
+        position_index: position number (integer) in the same order as the columns of the genotype matrix
+    csv files need to have the following structure:
+        sample identifier in the first column
+        SNP identifier in the first row need to be formatted as CHROMOSOME_POSITION
+        genotype values in additive encoding in the remaining rows and columns
+    For PLINK binary files GENOTYPE.bed, GENOTYPE.bim, GENOTYPE.fam need to be in same folder
+    For PLINK files GENOTYPE.ped and GENOTYPE.map files need to be in same folder
     :param arguments: user input
     :param sample_index: either a list/np.array containing the indices of the samples to load from the genotype matrix,
      or a single integer to load the genotype matrix from row 0 to row sample_index
@@ -123,7 +146,7 @@ def get_additive_encoding(matrix: np.array):
         1: heterozygous
         2: homozygous minor allele
     :param matrix: genotype matrix containing raw nucleotides in iupac single nucleotide notation
-    :return: genotype matrix in additive encoding
+    :return: torch tensor with genotype matrix in additive encoding
     """
     maj_min = []
     index_arr = []
@@ -140,11 +163,12 @@ def get_additive_encoding(matrix: np.array):
 
 def load_phenotype(arguments: argparse.Namespace):
     """
-    load phenotype
+    Function to load phenotype matrix
     Accept .csv, .pheno, .txt files. For .txt files assume that separator is a single space. First column should contain
-    sample_ids. Name of phenotype should be column name
+    sample_ids. Name of phenotype needs to be a column name
+    Raises Exception if not the right file type
     :param arguments: user input
-    :return: pandas DataFrame with sample ids as index
+    :return: pandas DataFrame with phenotype values and sample ids as index
     """
     suffix = arguments.y.suffix
     # load .csv
@@ -165,7 +189,8 @@ def load_phenotype(arguments: argparse.Namespace):
 
 def load_covariates(arguments: argparse.Namespace):
     """
-    Only take csv-files: sample ids have to be in first column
+    Only take csv-files: sample ids have to be in first column, will load all available columns
+    Raises Exception if not the right file type
     :param arguments: user input
     :return: pandas DataFrame with sample ids as index
     """
@@ -182,6 +207,7 @@ def load_kinship(arguments: argparse.Namespace):
     load kinship matrix from file. Only take .csv, .h5, .hdf5, .h5py files.
     For .csv files sample ids have to be in first column, .h5, .hdf5, .h5py files need to contain the kinship matrix
     with key 'kinship' and the corresponding sample ids with key 'sample_ids'.
+    Raises Exception if not the right file type
     :param arguments: user input
     :return: kinship matrix and sample ids
     """
