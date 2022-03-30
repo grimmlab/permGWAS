@@ -107,16 +107,27 @@ def load_and_prepare_data(arguments: argparse.Namespace):
     return X, y, K, covs, pos, chrom, sample_index[1]
 
 
-def maf_filter(X: np.array, positions: np.array, chrom: np.array, maf: int):
+def get_maf(X: torch.tensor):
+    """
+    Function to calculate minor allele frequencies of each SNP
+    :param X: genotype matrix
+    :return: vector containing frequencies
+    """
+    freq = (torch.sum(X, 0)) / (2 * X.shape[0])
+    return freq
+
+
+def use_maf_filter(X: torch.tensor, positions: np.array, chrom: np.array, maf: int):
     """
     filter genotype by minor allele frequency
     :param X: genotype matrix
     :param positions: SNP positions
     :param chrom: SNP chromosomes
+    :param freq: vector containing minor allele frequencies
     :param maf: maf threshold
     :return: filtered genotype matrix and vector with SNP positions
     """
-    freq = (torch.sum(X, 0)) / (2*X.shape[0])
+    freq = get_maf(X)
     tmp = np.where(freq <= maf/100)[0]
     X = np.delete(X, tmp, axis=1)
     positions = np.delete(positions, tmp, axis=0)

@@ -87,7 +87,9 @@ if __name__ == "__main__":
     if args.maf > 0:
         if X is None:
             X = load_files.load_genotype_matrix(args, sample_index=X_index)
-        X, positions, chrom, freq = prep.maf_filter(X, positions, chrom, args.maf)
+        X, positions, chrom, freq = prep.use_maf_filter(X, positions, chrom, args.maf)
+    elif X is not None:
+        freq = prep.get_maf(X)
     print('Loaded data, elapsed time: %f s.' % (time.time()-start))
     y = y.to(args.device)
     K = K.to(args.device)
@@ -98,11 +100,15 @@ if __name__ == "__main__":
     m = len(positions)
     print('Start performing GWAS on phenotype %s for %d SNPs and %d samples.' % (args.y_name, m, len(y)))
     start_gwas = time.time()
-    output = gwas.gwas(args, X, y, K, covs, X_index, m)
+    if X is not None:
+        output,_ = gwas.gwas(args, X, y, K, covs, X_index, m)
+    else:
+        output, freq = gwas.gwas(args, X, y, K, covs, X_index, m)
     df = pd.DataFrame({'CHR': chrom,
                        'POS': positions,
                        'p_value': output[:, 0],
                        'test_stat': output[:, 1],
+                       'maf': freq,
                        'SE': output[:, 2],
                        'effect_size': output[:, 3]})
     print('Done performing GWAS on phenotype %s for %d SNPs.\n'

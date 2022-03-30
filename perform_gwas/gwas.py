@@ -4,7 +4,7 @@ import torch
 import numpy as np
 from itertools import repeat
 from perform_gwas import model, kin, perm
-from preprocessing import load_files
+from preprocessing import load_files, prepare_data
 import time
 
 
@@ -31,6 +31,7 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
     RSS_0 = model.get_rss_h0(y_trans, fixed)  # shape: (1)
     freedom_deg = fixed.shape[1] + 1
     tmp = []
+    freq = []
     for i in range(int(np.ceil(m / arguments.batch))):
         lower_bound = i * arguments.batch
         upper_bound = (i + 1) * arguments.batch
@@ -39,6 +40,7 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
         if X is None:
             X_batch = load_files.load_genotype_matrix(arguments, sample_index=X_index, snp_lower_index=lower_bound,
                                            snp_upper_index=upper_bound)
+            freq.append(prepare_data.get_maf(X_batch))
             X_batch = kin.transform_input(X_batch.to(arguments.device), C)  # shape: (n,b)
         else:
             X_batch = kin.transform_input(X[:, lower_bound:upper_bound].to(arguments.device), C)  # shape: (n,b)
@@ -56,12 +58,14 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
                 torch.cuda.empty_cache()
     output = torch.cat(tmp, dim=0)  # shape(m,3)
     output = output.to(torch.device("cpu"))
+    if X is None:
+        freq = torch.cat(freq, dim=0)
     time_test_stats = time.time()
     print("Have test statistics of %d SNPs. Elapsed time: %f" % (m, time_test_stats-start))
     print("Calculate P-values now")
     p_val = list(map(model.get_p_value, output[:, 0], repeat(n), repeat(freedom_deg)))
     print("Have P-values. Elapsed time: ", time.time()-time_test_stats)
-    return torch.cat((torch.tensor(p_val).unsqueeze(1), output), dim=1)
+    return torch.cat((torch.tensor(p_val).unsqueeze(1), output), dim=1), freq
 
 
 def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: torch.tensor,

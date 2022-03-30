@@ -39,7 +39,7 @@ In the Docker container, navigate to the repository in the mounted directory.
 Run the script with the test data provided
 
 ```shell
-python3 run_permgwas.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv 
+python3 permGWAS.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv 
 ```
 
 
@@ -56,7 +56,7 @@ The file has to contain the following keys:
 - chr_index: vector containing the corresponding chromosome number
 
 ```shell
-python3 run_permgwas.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv 
+python3 permGWAS.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv 
 ```
 
 ### .csv
@@ -64,7 +64,7 @@ The first column should be the sample ids. The column names should be the SNP id
 (e.g. Chr1_657). The values should be the genotype matrix in additive encoding. 
 
 ```shell
-python3 run_permgwas.py -x ./data/x_matrix.csv -y ./data/y_matrix.csv 
+python3 permGWAS.py -x ./data/x_matrix.csv -y ./data/y_matrix.csv 
 ```
 
 ### PLINK
@@ -97,7 +97,7 @@ matrix should have the key 'kinship' and the corresponding sample ids the key 's
 The sample ids need to match those of the genotype matrix.
 
 ```shell
-python3 run_permgwas.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv --k ./data/k_matrix.csv
+python3 permGWAS.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv --k ./data/k_matrix.csv
 ```
 
 ### covariates file
@@ -106,7 +106,7 @@ fixed effect. Currently, permGWAS only accepts .csv files for covariates. Here t
 sample ids. The sample ids must match those of the phenotype file.
 
 ```shell
-python3 run_permgwas.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv --cov ./data/cov_matrix.csv
+python3 permGWAS.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv --cov ./data/cov_matrix.csv
 ```
 
 ### Options
