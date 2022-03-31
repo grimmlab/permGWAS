@@ -2,13 +2,11 @@
 Permutation-based Linear Mixed Models for GWAS
 
 ## Introduction
-- GWAS allg - LMM
-- permutationen
-- 3D/4D architektur
-- perm p-val, perm-thr
-- output file
+tbd
 
-
+We recommend to use permGWAS with HDF5/H5/H5PY files. For this we provide a function to create an H5 file which 
+satisfies our requirements and takes CSV, PLINK and binary PLINK genotype files as an input. For more info on 
+how to use this function, see the section about Input data below.
 
 ## Requirements
 
@@ -52,12 +50,12 @@ python3 permGWAS.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv
 
 ## Input data
 The minimal requirement is to provide a genotype and a phenotype file. We provide test data in the folder `data`.
-permGWAS is designed to work with several genotype file formats:
+permGWAS is designed to work with several genotype file formats, however we recommend using HDF5/H5/H5PY files:
 
-### .hdf5/.h5/.h5py
+### HDF5/H5/H5PY
 The file has to contain the following keys:
 
-- snps: genotype matrix, 012 encoded
+- snps: genotype matrix, additively encoded (012)
 - sample_ids: vector containing corresponding sample ids
 - position_index: vector containing the positions of all SNPs
 - chr_index: vector containing the corresponding chromosome number
@@ -66,7 +64,7 @@ The file has to contain the following keys:
 python3 permGWAS.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv 
 ```
 
-### .csv
+### CSV
 The first column should be the sample ids. The column names should be the SNP identifiers in the form "CHR_POSITION"
 (e.g. Chr1_657). The values should be the genotype matrix in additive encoding. 
 
@@ -87,16 +85,26 @@ To use binary PLINK data, a .bed, .bim and .fam file with the same prefix need t
 To run permGWAS with binary PLINK files, you can use PREFIX.bed, PREFIX.bim or PREFIX.fam as option for the genotype file.
 
 
+### create H5 file
+We provide a function to create an H5 file which satisfies our requirements. It is possible to create the H5 based on a 
+CSV, PLINK or binary PLINK files which have to fulfil the same requirements as above. The function takes the genotype 
+file path via the option -x and additionally one can specify a new directory to save the H5 file via --sd if the save 
+directory is not specified, the new file will be stored in the same directory as the input file.
+
+```shell
+python3 create_h5_file.py -x ./data/x_matrix.map --sd ./data/test
+```
+
 ### phenotype file 
-permGWAS currently only accepts .csv, .pheno and .txt files for the phenotype. Here the first column should contain the 
-sample ids. The remaining columns should contain the phenotype values with the phenotype name as column name. 
-For .txt files it is assumed that the values are separated by a single space.
+permGWAS currently only accepts CSV, PHENO and TXT files for the phenotype. Here the first column should contain 
+the sample ids. The remaining columns should contain the phenotype values with the phenotype name as column name. 
+For TXT files it is assumed that the values are separated by a single space.
 
 
 ### kinship file
 Per default permGWAS computes the realized relationship kernel as kinship matrix. 
-It is also possible to provide a kinship matrix. Currently, permGWAS only accepts .csv, .h5, .hdf5, .h5py files as 
-kinship file. For .csv files the first column should contain the sample ids. For .h5, .hdf5, .h5py files the kinship 
+It is also possible to provide a kinship matrix. Currently, permGWAS only accepts CSV, H5, HDF5, H5PY files as 
+kinship file. For CSV files the first column should contain the sample ids. For H5, HDF5, H5PY files the kinship 
 matrix should have the key 'kinship' and the corresponding sample ids the key 'sample_ids'
 The sample ids need to match those of the genotype matrix.
 
@@ -106,7 +114,7 @@ python3 permGWAS.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv --k ./data/k_ma
 
 ### covariates file
 It is possible to run permGWAS with covariates. If no covariates file is provided, only the intercept will be used as 
-fixed effect. Currently, permGWAS only accepts .csv files for covariates. Here the first column should contain the 
+fixed effect. Currently, permGWAS only accepts CSV files for covariates. Here the first column should contain the 
 sample ids. The sample ids must match those of the phenotype file.
 
 ```shell

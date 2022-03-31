@@ -26,7 +26,6 @@ def check_dir_paths(out_dir: str, out_file: str, check_again=False):
     :param check_again: if True, rename result file via adding (i) to the end of the file
     :return: path object
     """
-    # TODO
     my_path = Path(out_dir)
     if my_path.is_dir():
         if my_path.joinpath(out_file).exists():
