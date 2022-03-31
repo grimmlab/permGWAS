@@ -48,7 +48,7 @@ if __name__ == "__main__":
                              'specify the name of the directory result-files should be stored in,'
                              'absolute and relative paths are accepted')
     parser.add_argument('--out_file', type=str,
-                        help='specify NAME of result files, will be stored as NAME_p_values and NAME_min_p_values,'
+                        help='specify NAME of result files, will be stored as p_values_NAME and min_p_values_NAME,'
                              'optional, if not provided name of phenotype will be used')
     parser.add_argument('--device', type=int, default=0,
                         help='specify GPU device to be used, default is 0')
@@ -64,12 +64,14 @@ if __name__ == "__main__":
 
     '''check if all files and directories exist'''
     if args.out_file is None:
-        args.out_file = args.y_name
+        args.out_file = 'p_values_' + args.y_name + '.csv'
+    else:
+        args.out_file = 'p_values_' + args.out_file + '.csv'
     args.x = check.check_file_paths(args.x)
     args.y = check.check_file_paths(args.y)
     args.k = check.check_file_paths(args.k)
     args.cov_file = check.check_file_paths(args.cov_file)
-    args.out_dir = check.check_dir_paths(arg=args)
+    args.out_dir, args.out_file = check.check_dir_paths(args.out_dir, args.out_file, check_again=True)
 
     '''check if GPU is available'''
     if torch.cuda.is_available():
@@ -86,7 +88,7 @@ if __name__ == "__main__":
     X, y, K, covs, positions, chrom, X_index = prep.load_and_prepare_data(args)
     if args.maf > 0:
         if X is None:
-            X = load_files.load_genotype_matrix(args, sample_index=X_index)
+            X = load_files.load_genotype_matrix(args.x, sample_index=X_index)
         X, positions, chrom, freq = prep.use_maf_filter(X, positions, chrom, args.maf)
     elif X is not None:
         freq = prep.get_maf(X)
@@ -125,12 +127,12 @@ if __name__ == "__main__":
         df['adjusted_p_val'] = adjusted_p_val
         df_min = pd.DataFrame({'seed': my_seeds,
                                'min_p_val': min_p_val})
-        df_min.to_csv(args.out_dir.joinpath(args.out_file + '_min_p_values.csv'), index=False)
+        df_min.to_csv(args.out_dir.joinpath('min_' + args.out_file), index=False)
         print('Done performing GWAS with %d permutations.'
               'Elapsed time: %f s' % (args.perm, time.time()-start_perm))
 
     '''save p values'''
-    df.to_csv(args.out_dir.joinpath(args.out_file + '_p_values.csv'), index=False)
+    df.to_csv(args.out_dir.joinpath(args.out_file), index=False)
     print('Total time: ', time.time()-start)
 
     '''create manhattan plot'''

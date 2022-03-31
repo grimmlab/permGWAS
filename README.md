@@ -1,8 +1,15 @@
 # permGWAS
-Permutation based GWAS
+Permutation-based Linear Mixed Models for GWAS
 
 ## Introduction
-tbd
+- GWAS allg - LMM
+- permutationen
+- 3D/4D architektur
+- perm p-val, perm-thr
+- output file
+
+
+
 ## Requirements
 
 To ensure a stable working environment, we recommend using [docker](https://www.docker.com). To follow this recommendation, 
@@ -72,16 +79,13 @@ To use PLINK data, a .map and .ped file with the same prefix need to be in the s
 To run permGWAS with PLINK files, you can use PREFIX.map or PREFIX.ped as option for the genotype file.
 
 ```shell
-tbd
+python3 permGWAS.py -x ./data/x_matrix.map -y ./data/y_matrix.pheno 
 ```
 
 ### binary PLINK
 To use binary PLINK data, a .bed, .bim and .fam file with the same prefix need to be in the same folder. 
 To run permGWAS with binary PLINK files, you can use PREFIX.bed, PREFIX.bim or PREFIX.fam as option for the genotype file.
 
-```shell
-tbd
-```
 
 ### phenotype file 
 permGWAS currently only accepts .csv, .pheno and .txt files for the phenotype. Here the first column should contain the 
@@ -92,7 +96,7 @@ For .txt files it is assumed that the values are separated by a single space.
 ### kinship file
 Per default permGWAS computes the realized relationship kernel as kinship matrix. 
 It is also possible to provide a kinship matrix. Currently, permGWAS only accepts .csv, .h5, .hdf5, .h5py files as 
-kinship file.For .csv files the first column should contain the sample ids. For .h5, .hdf5, .h5py files the kinship 
+kinship file. For .csv files the first column should contain the sample ids. For .h5, .hdf5, .h5py files the kinship 
 matrix should have the key 'kinship' and the corresponding sample ids the key 'sample_ids'
 The sample ids need to match those of the genotype matrix.
 

@@ -17,23 +17,34 @@ def check_file_paths(file_path):
             raise FileNotFoundError('There is no file ', file_path)
 
 
-def check_dir_paths(arg):
+def check_dir_paths(out_dir: str, out_file: str, check_again=False):
     """
     check if directory for result files exists, if not, create directory.
     Then check if result files already exist, if they already exist, raises Exception
-    :param arg: argparse.Namespace
+    :param out_dir: directory to save result files
+    :param out_file: result file
+    :param check_again: if True, rename result file via adding (i) to the end of the file
     :return: path object
     """
     # TODO
-    my_path = Path(arg.out_dir)
+    my_path = Path(out_dir)
     if my_path.is_dir():
-        if my_path.joinpath(arg.out_file+'_p_values.csv').exists():
-            raise FileExistsError('The file %s already exists in chosen directory %s'
-                                  % (arg.out_file+'_p_values.csv', arg.out_dir))
+        if my_path.joinpath(out_file).exists():
+            if not check_again:
+                raise FileExistsError('The file %s already exists in chosen directory %s' % (out_file, out_dir))
+            else:
+                i = 1
+                new_file = out_file.split('.')[0] + '(' + str(i) + ').csv'
+                new_path = my_path.joinpath(new_file)
+                while new_path.exists():
+                    i += 1
+                    new_file = out_file.split('.')[0] + '(' + str(i) + ').csv'
+                    new_path = my_path.joinpath(new_file)
+                print('The file %s already exists in chosen directory %s. Changed filename to %s.'
+                      % (out_file, out_dir, new_file))
         else:
-            if my_path.joinpath(arg.out_file+'_min_p_values.csv').exists() and arg.perm is not None:
-                raise FileExistsError('The file %s already exists in chosen directory %s'
-                                      % (arg.out_file+'_min_p_values.csv', arg.out_dir))
+            new_file = out_file
     else:
+        new_file = out_file
         my_path.mkdir(parents=True, exist_ok=True)
-    return my_path
+    return my_path, new_file

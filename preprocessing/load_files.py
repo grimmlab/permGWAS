@@ -7,7 +7,7 @@ import h5py
 from pandas_plink import read_plink1_bin
 
 
-def load_genotype_ids(arguments: argparse.Namespace):
+def load_genotype_ids(genotype_file):
     """
     Function to load sample ids and chromosome and position identifiers of genotype.
     Takes PLINK files, binary PLINK files, .csv and .h5, .hdf5, .h5py files as input
@@ -24,35 +24,34 @@ def load_genotype_ids(arguments: argparse.Namespace):
         genotype values in additive encoding in the remaining rows and columns
     For PLINK binary files GENOTYPE.bed, GENOTYPE.bim, GENOTYPE.fam need to be in same folder
     For PLINK files GENOTYPE.ped and GENOTYPE.map files need to be in same folder
-    :param arguments: user input
+    :param genotype_file: path to genotype file
     :return: sample ids, SNP positions and chromosomes
     """
-    suffix = arguments.x.suffix
+    suffix = genotype_file.suffix
     # load binary PLINK
     if suffix in ('.bed', '.bim', '.fam'):
-        x_file = arguments.x.with_suffix('').as_posix()
-        gt = read_plink1_bin(x_file + '.bed', x_file + '.bim',
-                             x_file + '.fam', ref="a0", verbose=False)
+        prefix = genotype_file.with_suffix('').as_posix()
+        gt = read_plink1_bin(prefix + '.bed', prefix + '.bim', prefix + '.fam', ref="a0", verbose=False)
         sample_ids = np.array(gt['fid'], dtype=str).flatten()
         positions = np.array(gt['pos']).flatten()
         chromosomes = np.array(gt['chrom']).flatten()
     # load .h5, .hdf5, .h5py
     elif suffix in ('.h5', '.hdf5', '.h5py'):
-        with h5py.File(arguments.x, "r") as gt:
+        with h5py.File(genotype_file, "r") as gt:
             chromosomes = gt['chr_index'][:].astype(str)
             positions = gt['position_index'][:].astype(int)
             sample_ids = gt['sample_ids'][:].astype(str)
     # load .csv
     elif suffix == '.csv':
-        gt = pd.read_csv(arguments.x, index_col=0)
+        gt = pd.read_csv(genotype_file, index_col=0)
         identifiers = np.array(list(map(lambda a: a.split("_"), gt.columns.values)))
         chromosomes = identifiers[:, 0]
         positions = identifiers[:, 1]
         sample_ids = np.asarray(gt.index, dtype=str)
     # load PLINK
     elif suffix in ('.map', '.ped'):
-        x_file = arguments.x.with_suffix('').as_posix()
-        with open(x_file + '.map', 'r') as f:
+        prefix = genotype_file.with_suffix('').as_posix()
+        with open(prefix + '.map', 'r') as f:
             chromosomes = []
             positions = []
             for line in f:
@@ -61,7 +60,7 @@ def load_genotype_ids(arguments: argparse.Namespace):
                 positions.append(tmp[-1].strip())
         chromosomes = np.array(chromosomes)
         positions = np.array(positions)
-        with open(x_file + '.ped', 'r') as f:
+        with open(prefix + '.ped', 'r') as f:
             sample_ids = []
             for line in f:
                 tmp = line.strip().split(" ")
@@ -72,7 +71,7 @@ def load_genotype_ids(arguments: argparse.Namespace):
     return sample_ids, positions, chromosomes
 
 
-def load_genotype_matrix(arguments: argparse.Namespace, sample_index=None, snp_lower_index=None, snp_upper_index=None):
+def load_genotype_matrix(genotype_file, sample_index=None, snp_lower_index=None, snp_upper_index=None):
     """
     Load genotype matrix. Accepts PLINK files, binary PLINK files, .csv and .h5, .hdf5, .h5py files.
     For .h5, .hdf5, .h5py files it is possible to only load certain samples and SNPs batch wise.
@@ -88,17 +87,17 @@ def load_genotype_matrix(arguments: argparse.Namespace, sample_index=None, snp_l
         genotype values in additive encoding in the remaining rows and columns
     For PLINK binary files GENOTYPE.bed, GENOTYPE.bim, GENOTYPE.fam need to be in same folder
     For PLINK files GENOTYPE.ped and GENOTYPE.map files need to be in same folder
-    :param arguments: user input
+    :param genotype_file: path to genotype file
     :param sample_index: either a list/np.array containing the indices of the samples to load from the genotype matrix,
      or a single integer to load the genotype matrix from row 0 to row sample_index
     :param snp_lower_index: lower bound of batch
     :param snp_upper_index: upper bound of batch
     :return: X
     """
-    suffix = arguments.x.suffix
+    suffix = genotype_file.suffix
     # only load needed samples and markers if .h5, .hdf5, .h5py files
     if suffix in ('.h5', '.hdf5', '.h5py'):
-        with h5py.File(arguments.x, "r") as gt:
+        with h5py.File(genotype_file, "r") as gt:
             if isinstance(sample_index, (np.ndarray, list)):
                 indices, inverse = np.unique(sample_index, return_inverse=True)
                 X = gt['snps'][indices, snp_lower_index:snp_upper_index]
@@ -108,19 +107,19 @@ def load_genotype_matrix(arguments: argparse.Namespace, sample_index=None, snp_l
     else:
         # load binary PLINK
         if suffix in ('.bed', '.bim', '.fam'):
-            x_file = arguments.x.with_suffix('').as_posix()
-            gt = read_plink1_bin(x_file + '.bed', x_file + '.bim', x_file + '.fam', ref="a0", verbose=False)
+            prefix = genotype_file.with_suffix('').as_posix()
+            gt = read_plink1_bin(prefix + '.bed', prefix + '.bim', prefix + '.fam', ref="a0", verbose=False)
             X = torch.tensor(gt.values, dtype=torch.float64)
         # load .csv
         elif suffix == '.csv':
-            gt = pd.read_csv(arguments.x, index_col=0)
+            gt = pd.read_csv(genotype_file, index_col=0)
             X = torch.tensor(gt.values, dtype=torch.float64)
         # load PLINK
         elif suffix in ('.map', '.ped'):
-            x_file = arguments.x.with_suffix('').as_posix()
+            prefix = genotype_file.with_suffix('').as_posix()
             iupac_map = {"AA": "A", "GG": "G", "TT": "T", "CC": "C", "AG": "R", "GA": "R", "CT": "Y", "TC": "Y",
                          "GC": "S", "CG": "S", "AT": "W", "TA": "W", "GT": "K", "TG": "K", "AC": "M", "CA": "M"}
-            with open(x_file + '.ped', 'r') as f:
+            with open(prefix + '.ped', 'r') as f:
                 raw = []
                 for line in f:
                     tmp = line.strip().split(" ")
@@ -134,7 +133,8 @@ def load_genotype_matrix(arguments: argparse.Namespace, sample_index=None, snp_l
             X = get_additive_encoding(raw)
         else:
             raise NotImplementedError('Only accept .h5, .hdf5, .h5py, .csv, PLINK and binary PLINK genotype files')
-        X = X[sample_index, :]
+        if sample_index is not None:
+            X = X[sample_index, :]
     return X
 
 

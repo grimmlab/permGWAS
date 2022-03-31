@@ -61,7 +61,7 @@ def load_and_prepare_data(arguments: argparse.Namespace):
     :return: genotype matrix, phenotype vector, kinship matrix, vector with SNP positions and corresponding chromosomes
     """
     # load and match genotype ids and phenotype
-    sample_ids, pos, chrom = load_files.load_genotype_ids(arguments)
+    sample_ids, pos, chrom = load_files.load_genotype_ids(arguments.x)
     y = load_files.load_phenotype(arguments)
     y_ids = np.asarray(y.index, dtype=sample_ids.dtype).flatten()
     sample_index = (np.reshape(y_ids, (y_ids.shape[0], 1)) == sample_ids).nonzero()
@@ -72,13 +72,13 @@ def load_and_prepare_data(arguments: argparse.Namespace):
 
     # check if kinship is provided if not, load genotype and create kinship
     if arguments.k is None:
-        X = load_files.load_genotype_matrix(arguments, sample_index=sample_index[1])
+        X = load_files.load_genotype_matrix(arguments.x, sample_index=sample_index[1])
         X, pos, chrom = filter_non_informative_snps(X, pos, chrom)
         K = get_kinship(X)
     # load genotype if needed
     else:
         if arguments.load_genotype or (arguments.x.suffix not in ('.h5', '.hdf5', '.h5py')):
-            X = load_files.load_genotype_matrix(arguments, sample_index=sample_index[1])
+            X = load_files.load_genotype_matrix(arguments.x, sample_index=sample_index[1])
             X, pos, chrom = filter_non_informative_snps(X, pos, chrom)
         else:
             X = None
