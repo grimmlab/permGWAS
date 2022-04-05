@@ -137,8 +137,7 @@ if __name__ == "__main__":
 
     '''create manhattan plot'''
     if args.plot is True:
-        out = args.out_file.joinpath(args.file_name)
         if args.perm is None:
-            plot.create_manhattan(df, args)
+            plot.manhattan(df, 'p_value', args.out_dir.joinpath(args.y_name + '_manhattan.png'))
         else:
-            plot.create_manhattan(df, args, df_min=df_min)
+            plot.manhattan(df, 'p_value', args.out_dir.joinpath(args.y_name + '_manhattan.png'), df_min=df_min)
