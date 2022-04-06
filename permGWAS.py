@@ -36,7 +36,7 @@ if __name__ == "__main__":
     parser.add_argument('--maf', type=int, choices=range(0, 30), default=0,
                         help='specify minor allele frequency threshold as percentage value,'
                              'optional, if not provided no maf filtering will be performed')
-    parser.add_argument('--load_genotype', '--load_x', type=bool, default=False,
+    parser.add_argument('--load_genotype', '--load_x', action='store_true',
                         help='If True, genotype matrix will be loaded completely during data load. If False, genotype '
                              'matrix will be loaded batch-wise during computations of test statistics. '
                              'Default is False')
