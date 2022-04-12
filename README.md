@@ -3,7 +3,14 @@ Permutation-based Linear Mixed Models for GWAS
 
 ## Citation
 
-tbd
+The paper is currently under review.  
+
+You can find a preprint of the manuscript at BioRxiv (https://www.biorxiv.org/content/10.1101/2022.04.05.487185v1.abstract)  
+
+John, M., Ankenbrand, M. J., Artmann, C., Freudenthal, J. A., Korte, A., & Grimm, D. G. (2022).  
+**Efficient Permutation-based Genome-wide Association Studies for Normal and Skewed Phenotypic Distributions**.  
+bioRxiv, 487185.  
+
 
 ## Introduction
 permGWAS is an open source software tool written in python to efficiently perform genome-wide association studies (GWAS)
@@ -31,6 +38,7 @@ git clone https://github.com/grimmlab/permGWAS.git
 Navigate to `config` and build a Docker image using the provided Dockerfile
 
 ```shell
+cd config
 docker build -t IMAGENAME .
 ```
 
