@@ -1,15 +1,16 @@
 # permGWAS
-Permutation-based Linear Mixed Models for GWAS
+Efficient Permutation-based Genome-wide Association Studies for Normal and Skewed Phenotypic Distributions
 
 ## Citation
 
-The paper is currently under review.  
+John, M., Ankenbrand, M. J., Artmann, C., Freudenthal, J. A., Korte, A., & Grimm, D. G. (2022).  
+**Efficient Permutation-based Genome-wide Association Studies for Normal and Skewed Phenotypic Distributions**.  
+Accepted at European Conference on Computational Biology (ECCB) 2022, Bioinformatics, 2022.   
+
 
 You can find a preprint of the manuscript at BioRxiv (https://www.biorxiv.org/content/10.1101/2022.04.05.487185v1.abstract)  
 
-John, M., Ankenbrand, M. J., Artmann, C., Freudenthal, J. A., Korte, A., & Grimm, D. G. (2022).  
-**Efficient Permutation-based Genome-wide Association Studies for Normal and Skewed Phenotypic Distributions**.  
-bioRxiv, 487185.  
+
 
 
 ## Introduction
