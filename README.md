@@ -1,7 +1,17 @@
-# permGWAS
-Efficient Permutation-based Genome-wide Association Studies for Normal and Skewed Phenotypic Distributions
+[![Python 3.8](https://img.shields.io/badge/Python-3.8-3776AB)](https://www.python.org/downloads/release/python-388/)
+[![PyTorch 1.10](https://img.shields.io/badge/PyTorch-1.10-FF6F00?logo=pytorch)](https://github.com/pytorch/pytorch/releases/tag/v1.10.0)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Citation
+<img src="/permGWAS_logo.png" data-canonical-src="/permGWAS_logo.png" height="80" />  
+
+## Efficient Permutation-based Genome-wide Association Studies for Normal and Skewed Phenotypic Distributions  
+
+permGWAS is an open source software tool written in python to efficiently perform genome-wide association studies (GWAS)
+with permutation-based thresholds. permGWAS provides support for multiple CPUs as well as for GPUs. 
+
+Details on the architecture of permGWAS, benchmarking results of the framework and on permutation-based thresholds can be found in our publication.
+
+## Publication & Citation
 
 John, M., Ankenbrand, M. J., Artmann, C., Freudenthal, J. A., Korte, A., & Grimm, D. G. (2022).  
 **Efficient Permutation-based Genome-wide Association Studies for Normal and Skewed Phenotypic Distributions**.  
@@ -9,17 +19,6 @@ Accepted at European Conference on Computational Biology (ECCB) 2022, Bioinforma
 
 
 You can find a preprint of the manuscript at BioRxiv (https://www.biorxiv.org/content/10.1101/2022.04.05.487185v1.abstract)  
-
-
-
-
-## Introduction
-permGWAS is an open source software tool written in python to efficiently perform genome-wide association studies (GWAS)
-with permutation-based thresholds. To speed up the computational time needed for normal GWAS as well as for 
-permutation-based GWAS, we compute several univariate tests simultaneously and use GPU support. 
-
-For all the details on the architecture of permGWAS, benchmarking the framework and on permutation-based thresholds, 
-please see our paper published alongside this software.
 
 
 ## Requirements
