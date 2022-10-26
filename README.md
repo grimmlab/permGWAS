@@ -15,11 +15,11 @@ Details on the architecture of permGWAS, benchmarking results of the framework a
 
 John, M., Ankenbrand, M. J., Artmann, C., Freudenthal, J. A., Korte, A., & Grimm, D. G. (2022).  
 **Efficient Permutation-based Genome-wide Association Studies for Normal and Skewed Phenotypic Distributions**.  
-Accepted at European Conference on Computational Biology (ECCB) 2022, Bioinformatics, 2022.   
+Bioinformatics, 2022.   
 
+DOI: https://doi.org/10.1093/bioinformatics/btac455
 
-You can find a preprint of the manuscript at BioRxiv (https://www.biorxiv.org/content/10.1101/2022.04.05.487185v1.abstract)  
-
+The work was presented at the European Conference on Computational Biology (ECCB) 2022.
 
 ## Requirements
 
