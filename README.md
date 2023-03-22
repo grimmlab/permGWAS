@@ -132,11 +132,11 @@ python3 permGWAS.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv --cov ./data/co
 ## create H5 file
 We provide a function to create an H5 file which satisfies our requirements. It is possible to create the H5 based on a 
 CSV, PLINK or binary PLINK files which have to fulfil the same requirements as above. The function takes the genotype 
-file path via the option -x and additionally one can specify a new directory to save the H5 file via --sd if the save 
+file path via the option -x and additionally one can specify a new directory to save the H5 file via -sd if the save 
 directory is not specified, the new file will be stored in the same directory as the input file.
 
 ```shell
-python3 create_h5_file.py -x ./data/x_matrix.map --sd ./data/test
+python3 create_h5_file.py -x ./data/x_matrix.map -sd ./data/test
 ```
 
 ## output files
