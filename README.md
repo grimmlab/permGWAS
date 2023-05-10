@@ -106,7 +106,7 @@ To run permGWAS with binary PLINK files, you can use PREFIX.bed, PREFIX.bim or P
 ### phenotype file 
 permGWAS currently only accepts CSV, PHENO and TXT files for the phenotype. Here the first column should contain 
 the sample ids. The remaining columns should contain the phenotype values with the phenotype name as column name. 
-For TXT files it is assumed that the values are separated by a single space.
+For TXT and PHENO files it is assumed that the values are separated by a single space.
 
 
 ### kinship file
