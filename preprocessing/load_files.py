@@ -199,8 +199,12 @@ def load_phenotype(arguments: argparse.Namespace):
     if suffix == ".csv":
         y = pd.read_csv(arguments.y)
     # load PHENO or TXT
-    elif suffix in (".pheno", ".txt"):
+    elif suffix == ".txt":
         y = pd.read_csv(arguments.y, sep=" ")
+    elif suffix == ".pheno":
+        y = pd.read_csv(arguments.y, sep=" ")
+        if {'FID','IID'}.issubset(set(y.columns)):
+            y.drop(columns='FID', inplace=True)
     else:
         raise NotImplementedError('Only accept CSV, PHENO and TXT phenotype files')
     y = y.sort_values(y.columns[0]).groupby(y.columns[0]).mean()
