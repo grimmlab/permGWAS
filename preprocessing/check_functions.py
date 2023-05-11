@@ -27,20 +27,22 @@ def check_dir_paths(out_dir: str, out_file: str, check_again=False):
     :return: path object
     """
     my_path = Path(out_dir)
+    out_file = Path(out_file).with_suffix('.csv').as_posix()
     if my_path.is_dir():
-        if my_path.joinpath(out_file).exists():
+        if my_path.joinpath('p_values_' + out_file).exists():
             if not check_again:
-                raise FileExistsError('The file %s already exists in chosen directory %s' % (out_file, out_dir))
+                raise FileExistsError('The file %s already exists in chosen directory %s' %
+                                      ('p_values_' + out_file, out_dir))
             else:
                 i = 1
-                new_file = out_file.split('.')[0] + '(' + str(i) + ').csv'
-                new_path = my_path.joinpath(new_file)
+                new_file = Path(out_file).with_suffix('').as_posix() + '(' + str(i) + ').csv'
+                new_path = my_path.joinpath('p_values_' + new_file)
                 while new_path.exists():
                     i += 1
-                    new_file = out_file.split('.')[0] + '(' + str(i) + ').csv'
-                    new_path = my_path.joinpath(new_file)
+                    new_file = Path(out_file).with_suffix('').as_posix() + '(' + str(i) + ').csv'
+                    new_path = my_path.joinpath('p_values_' + new_file)
                 print('The file %s already exists in chosen directory %s. Changed filename to %s.'
-                      % (out_file, out_dir, new_file))
+                      % ('p_values_' + out_file, out_dir, 'p_values_' + new_file))
         else:
             new_file = out_file
     else:

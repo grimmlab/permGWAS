@@ -153,6 +153,11 @@ The result file contains for each analyzed SNP:
 - SE: standard error
 - effect_size: coefficient beta
 
+Additionally, a TXT file with summary statistics will be saved. 
+This file contains the estimates of the variance components of the null model,
+ the narrow-sense heritability, the Bonferroni threshold and, 
+if permutations are used, the permutation-based threshold.
+
 ## further options
 ### minor allele frequency (MAF)
 It is possible to filter the markers for minor allele frequency. For this use the flag `--maf a`, where a should be any 

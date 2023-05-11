@@ -28,8 +28,8 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
     :param covs: vector/matrix of covariates of shape (n,c), optional
     :param X_index: indices of genotype matrix samples to load in batches
     :param m: total number of SNPs to work on
-    :return: p-value, test statistic, standard error and effect size of each SNP and minor allele frequencies if X was
-    loaded batch-wise
+    :return: p-value, test statistic, standard error and effect size of each SNP, variance components and minor allele
+    frequencies if X was loaded batch-wise
     """
     start = time.time()
     n = y.shape[0]
@@ -87,7 +87,7 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
     # compute p-values
     p_val = list(map(model.get_p_value, output[:, 0], repeat(n), repeat(freedom_deg)))
     print("Have P-values. Elapsed time: ", time.time()-time_test_stats)
-    return torch.cat((torch.tensor(p_val).unsqueeze(1), output), dim=1), freq
+    return torch.cat((torch.tensor(p_val).unsqueeze(1), output), dim=1), v_g, v_e, freq
 
 
 def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: torch.tensor,

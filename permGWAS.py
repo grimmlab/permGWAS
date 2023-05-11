@@ -4,6 +4,7 @@ from pathlib import Path
 from preprocessing import prepare_data as prep
 from preprocessing import check_functions as check
 from preprocessing import load_files
+from preprocessing import helper_functions
 from perform_gwas import gwas
 from plot import plot
 import pandas as pd
@@ -64,9 +65,7 @@ if __name__ == "__main__":
 
     '''check if all files and directories exist'''
     if args.out_file is None:
-        args.out_file = 'p_values_' + args.y_name + '.csv'
-    else:
-        args.out_file = 'p_values_' + args.out_file + '.csv'
+        args.out_file = args.y_name + '.csv'
     args.x = check.check_file_paths(args.x)
     args.y = check.check_file_paths(args.y)
     args.k = check.check_file_paths(args.k)
@@ -98,14 +97,16 @@ if __name__ == "__main__":
     if covs is not None:
         covs = covs.to(args.device)
 
+    n_samples = len(y)
+    n_snps = len(positions)
+
     '''perform GWAS'''
-    m = len(positions)
-    print('Start performing GWAS on phenotype %s for %d SNPs and %d samples.' % (args.y_name, m, len(y)))
+    print('Start performing GWAS on phenotype %s for %d SNPs and %d samples.' % (args.y_name, n_snps, n_samples))
     start_gwas = time.time()
     if X is not None:
-        output, _ = gwas.gwas(args, X, y, K, covs, X_index, m)
+        output, v_g, v_e, _ = gwas.gwas(args, X, y, K, covs, X_index, n_snps)
     else:
-        output, freq = gwas.gwas(args, X, y, K, covs, X_index, m)
+        output, v_g, v_e, freq = gwas.gwas(args, X, y, K, covs, X_index, n_snps)
     df = pd.DataFrame({'CHR': chrom,
                        'POS': positions,
                        'p_value': output[:, 0],
@@ -114,7 +115,7 @@ if __name__ == "__main__":
                        'SE': output[:, 2],
                        'effect_size': output[:, 3]})
     print('Done performing GWAS on phenotype %s for %d SNPs.\n'
-          'Elapsed time: %f s' % (args.y_name, m, time.time()-start_gwas))
+          'Elapsed time: %f s' % (args.y_name, n_snps, time.time()-start_gwas))
     if args.device.type != "cpu":
         with torch.cuda.device(args.device):
             torch.cuda.empty_cache()
@@ -123,21 +124,29 @@ if __name__ == "__main__":
     if args.perm is not None:
         print('Start performing GWAS with %d permutations.' % args.perm)
         start_perm = time.time()
-        adjusted_p_val, min_p_val, my_seeds = gwas.perm_gwas(args, X, y, K, output[:, 1], covs, X_index, m)
+        adjusted_p_val, min_p_val, my_seeds = gwas.perm_gwas(args, X, y, K, output[:, 1], covs, X_index, n_snps)
         df['adjusted_p_val'] = adjusted_p_val
         df_min = pd.DataFrame({'seed': my_seeds,
                                'min_p_val': min_p_val})
-        df_min.to_csv(args.out_dir.joinpath('min_' + args.out_file), index=False)
+        df_min.to_csv(args.out_dir.joinpath('min_p_values_' + args.out_file), index=False)
         print('Done performing GWAS with %d permutations.'
               'Elapsed time: %f s' % (args.perm, time.time()-start_perm))
-
+    else:
+        min_p_val = None
     '''save p values'''
-    df.to_csv(args.out_dir.joinpath(args.out_file), index=False)
+    df.to_csv(args.out_dir.joinpath('p_values_' + args.out_file), index=False)
     print('Total time: ', time.time()-start)
 
     '''create manhattan plot'''
     if args.plot is True:
         if args.perm is None:
-            plot.manhattan(df, 'p_value', args.out_dir.joinpath(args.y_name + '_manhattan.png'))
+            plot.manhattan(df, 'p_value',
+                           args.out_dir.joinpath('manhattan_' + Path(args.out_file).with_suffix('.png').as_posix()))
         else:
-            plot.manhattan(df, 'p_value', args.out_dir.joinpath(args.y_name + '_manhattan.png'), df_min=df_min)
+            plot.manhattan(df, 'p_value',
+                           args.out_dir.joinpath('manhattan_' + Path(args.out_file).with_suffix('.png').as_posix()),
+                           df_min)
+
+    '''get summary statistics'''
+    helper_functions.get_summary_stats(arguments=args, samples=n_samples, snps=n_snps, v_g=v_g, v_e=v_e,
+                                       min_p_val=min_p_val)
