@@ -58,7 +58,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_perm', type=int, default=1000,
                         help='specify number of SNPs to work on simultaneously while using permutations, '
                              'default is 1000')
-    parser.add_argument('--mplot', '--manhattan', action='store_true',
+    parser.add_argument('--plot', '--manhattan', action='store_true',
                         help='optional, creates manhattan plot')
     parser.add_argument('--qqplot', action='store_true',
                         help='optional, creates QQ-plot')
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     print('Total time: ', time.time()-start)
 
     '''create plots'''
-    if args.mplot is True:
+    if args.plot is True:
         if args.perm is None:
             plot.manhattan(df=df, output=args.out_dir.joinpath('manhattan_' +
                                                                Path(args.out_file).with_suffix('.png').as_posix()))
