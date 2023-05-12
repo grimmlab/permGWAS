@@ -39,7 +39,7 @@ def manhattan(df: pd.DataFrame, output: pathlib.Path, sig_level: int=5, min_p_va
     labels = np.unique(data['CHR'])
     g.ax.set_xticklabels(labels)
 
-    g.axes[0, 0].axhline(-np.log10(helper_functions.compute_bonf_threshold(len(data), sig_level)), color='green',
+    g.axes[0, 0].axhline(-np.log10(helper_functions.compute_bonf_threshold(len(df), sig_level)), color='green',
                          label='Bonferroni')
 
     if min_p_val is not None:
