@@ -1,7 +1,6 @@
 import numpy as np
 import pathlib
 import argparse
-import time
 
 def estimate_heritability(v_g: float, v_e: float):
     """

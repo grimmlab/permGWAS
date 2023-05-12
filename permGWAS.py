@@ -4,7 +4,7 @@ from pathlib import Path
 from preprocessing import prepare_data as prep
 from preprocessing import check_functions as check
 from preprocessing import load_files
-from preprocessing import helper_functions
+from utils import helper_functions
 from perform_gwas import gwas
 from plot import plot
 import pandas as pd
@@ -58,8 +58,10 @@ if __name__ == "__main__":
     parser.add_argument('--batch_perm', type=int, default=1000,
                         help='specify number of SNPs to work on simultaneously while using permutations, '
                              'default is 1000')
-    parser.add_argument('--plot', action='store_true',
+    parser.add_argument('--mplot', '--manhattan', action='store_true',
                         help='optional, creates manhattan plot')
+    parser.add_argument('--qqplot', action='store_true',
+                        help='optional, creates QQ-plot')
 
     args = parser.parse_args()
 
@@ -137,15 +139,19 @@ if __name__ == "__main__":
     df.to_csv(args.out_dir.joinpath('p_values_' + args.out_file), index=False)
     print('Total time: ', time.time()-start)
 
-    '''create manhattan plot'''
-    if args.plot is True:
+    '''create plots'''
+    if args.mplot is True:
         if args.perm is None:
-            plot.manhattan(df, 'p_value',
-                           args.out_dir.joinpath('manhattan_' + Path(args.out_file).with_suffix('.png').as_posix()))
+            plot.manhattan(df=df, output=args.out_dir.joinpath('manhattan_' +
+                                                               Path(args.out_file).with_suffix('.png').as_posix()))
         else:
-            plot.manhattan(df, 'p_value',
-                           args.out_dir.joinpath('manhattan_' + Path(args.out_file).with_suffix('.png').as_posix()),
-                           df_min)
+            plot.manhattan(df=df, output=args.out_dir.joinpath('manhattan_' +
+                                                               Path(args.out_file).with_suffix('.png').as_posix()),
+                           min_p_val=min_p_val)
+
+    if args.qqplot is True:
+        plot.qq_plot(df=df, output=args.out_dir.joinpath('qq_plot_' +
+                                                         Path(args.out_file).with_suffix('.png').as_posix()))
 
     '''get summary statistics'''
     helper_functions.get_summary_stats(arguments=args, samples=n_samples, snps=n_snps, v_g=v_g, v_e=v_e,
