@@ -197,9 +197,11 @@ default. It is also possible to force permGWAS to load the genotype matrix compl
 via the flag `--load_genotype`. 
 
 ### Manhattan plot
-When using the flag `--plot`, permGWAS will generate and save a Manhattan plot with Bonferroni significance threshold. 
+When using the flag `--mplot`, permGWAS will generate and save a Manhattan plot with Bonferroni significance threshold. 
 If permGWAS is run with permutations, additionally the permutation-based threshold will be plotted.
 
+### QQ-plot
+When using the flag `--qqplot`, permGWAS will generate and save a QQ-plot including the inflation factor lambda.
 
 ### Flags and options
 |||
@@ -217,4 +219,5 @@ If permGWAS is run with permutations, additionally the permutation-based thresho
 |--device | GPU device to be used, optional, default is 0|
 |--batch | number of SNPs to work on simultaneously, optional, default is 50000|
 |--batch_perm | number of SNPs to work on simultaneously while using permutations, optional, default is 1000|
-|--plot | creates manhattan plot, optional|
+|--mplot (--manhattan)| creates Manhattan plot, optional|
+|--qqplot | creates QQ-plot, optional|
