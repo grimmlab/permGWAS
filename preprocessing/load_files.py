@@ -46,7 +46,7 @@ def load_genotype_ids(genotype_file):
         gt = pd.read_csv(genotype_file, index_col=0)
         identifiers = np.array(list(map(lambda a: a.split("_"), gt.columns.values)))
         chromosomes = identifiers[:, 0]
-        positions = identifiers[:, 1]
+        positions = identifiers[:, 1].astype(int)
         sample_ids = np.asarray(gt.index, dtype=str)
     # load PLINK
     elif suffix in ('.map', '.ped'):
