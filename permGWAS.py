@@ -62,6 +62,8 @@ if __name__ == "__main__":
                         help='optional, creates manhattan plot')
     parser.add_argument('--qqplot', action='store_true',
                         help='optional, creates QQ-plot')
+    parser.add_argument('--not_add', action='store_true',
+                        help='optional, use if genotype has different encoding.')
 
     args = parser.parse_args()
 

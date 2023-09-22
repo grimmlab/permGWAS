@@ -55,7 +55,7 @@ def gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K: tor
         if X is None:
             # load X batch-wise
             X_batch = load_files.load_genotype_matrix(arguments.x, sample_index=X_index, snp_lower_index=lower_bound,
-                                                      snp_upper_index=upper_bound)
+                                                      snp_upper_index=upper_bound, not_add=arguments.not_add)
             # calculate minor allele frequencies
             freq.append(prepare_data.get_maf(X_batch))
             # linearly transform X
@@ -153,7 +153,7 @@ def perm_gwas(arguments: argparse.Namespace, X: torch.tensor, y: torch.tensor, K
         if X is None:
             # load X batch-wise and linearly transform it
             X_batch = load_files.load_genotype_matrix(arguments.x, sample_index=X_index, snp_lower_index=lower_bound,
-                                                      snp_upper_index=upper_bound)
+                                                      snp_upper_index=upper_bound, not_add=arguments.not_add)
             X_batch = kin.transform_input(model.get_v_batch(X_batch.to(arguments.device),
                                                             arguments.perm), C_perm)  # shape: (p,n,b)
         else:

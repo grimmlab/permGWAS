@@ -221,3 +221,4 @@ When using the flag `--qqplot`, permGWAS will generate and save a QQ-plot includ
 |--batch_perm | number of SNPs to work on simultaneously while using permutations, optional, default is 1000|
 |--plot (--manhattan)| creates Manhattan plot, optional|
 |--qqplot | creates QQ-plot, optional|
+|--not_add | use when genotype is not in additive encoding| 

@@ -71,7 +71,7 @@ def load_genotype_ids(genotype_file):
     return sample_ids, positions, chromosomes
 
 
-def load_genotype_matrix(genotype_file, sample_index=None, snp_lower_index=None, snp_upper_index=None):
+def load_genotype_matrix(genotype_file, sample_index=None, snp_lower_index=None, snp_upper_index=None, not_add=False):
     """
     Load genotype matrix. Accepts PLINK files, binary PLINK files, CSV and H5, HDF5, H5PY files.
     For H5, HDF5, H5PY files it is possible to only load certain samples and SNPs batch wise.
@@ -136,8 +136,11 @@ def load_genotype_matrix(genotype_file, sample_index=None, snp_lower_index=None,
         if sample_index is not None:
             X = X[sample_index, :]
     unique = np.unique(X)
-    if not all(z in [0, 1, 2] for z in unique):
-        raise Exception('Genotype not in additive encoding.')
+    if not_add:
+        print('Genotype might not be additive. Will not check encoding of genotype.')
+    else:
+        if not all(z in [0, 1, 2] for z in unique):
+            raise Exception('Genotype not in additive encoding.')
     return X
 
 
