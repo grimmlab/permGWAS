@@ -16,9 +16,9 @@ x (default): permute the fixed effects matrix including covariates and the SNP o
 
 y: permute only the phenotype vector (same method as in the original permGWAS)
 
-Details on the architecture of permGWAS, benchmarking results of the framework and on permutation-based thresholds can be found in our publication.
+Details on the architecture of permGWAS and permGWAS2, benchmarking results of the framework and on permutation-based thresholds can be found in our publications.
 
-## Publication & Citation
+## Publications & Citation
 
 John, M., Korte, A. & Grimm, D. G. (2023). 
 **permGWAS2: Enhanced and Accelerated Permutation-based Genome-wide Association Studies**. bioRxiv.
