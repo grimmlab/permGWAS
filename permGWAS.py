@@ -1,160 +1,98 @@
+# run the script here
 import argparse
-import torch
-from pathlib import Path
-from preprocessing import prepare_data as prep
-from preprocessing import check_functions as check
-from preprocessing import load_files
-from utils import helper_functions
-from perform_gwas import gwas
-from plot import plot
-import pandas as pd
-import time
+import pathlib
+
+from utils import check_functions
+import perform_gwas
 
 
 if __name__ == "__main__":
-
-    # Input parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument('-x', '-x_file', '-genotype', type=str,
-                        help='specify the name of the genotype file, absolute and relative paths are accepted, '
+    parser.add_argument('-x', '--genotype_file', type=str, default=None,
+                        help='Specify the full path to the genotype file, absolute and relative paths are accepted, '
                              'only accept .h5, .hdf5, .h5py, .csv, PLINK and binary PLINK files, '
-                             'PLINK and binary PLINK: all required files must be in the same folder with same prefix,'
-                             'for format of .h5, .hdf5, .h5py and .csv files check documentation')
-    parser.add_argument('-y', '-y_file', '-phenotype', type=str,
-                        help='specify the name of the phenotype file, absolute and relative paths are accepted, '
-                             'currently only accept .csv files')
-    parser.add_argument('--y_name', '--pt_name', type=str, default='phenotype_value',
-                        help='specify name of phenotype (column) to be used in phenotype file,'
-                             'default is "phenotype_value"')
-    parser.add_argument('--k', '--k_file', '--kinship', type=str,
-                        help='optional, if not provided realized relationship kernel will be calculated'
-                             'specify the name of the kinship file, absolute and relative paths are accepted,'
-                             'currently only accept .csv files')
-    parser.add_argument('--cov_file', '--cov', type=str,
-                        help='optional, if not provided only intercept will be used as fixed effect, '
-                             'specify the name of the covariates file, absolute and relative paths are accepted,'
-                             'currently only accept .csv files')
-    parser.add_argument('--maf', type=int, choices=range(0, 30), default=0,
-                        help='specify minor allele frequency threshold as percentage value,'
-                             'optional, if not provided no maf filtering will be performed')
-    parser.add_argument('--load_genotype', '--load_x', action='store_true',
-                        help='If True, genotype matrix will be loaded completely during data load. If False, genotype '
-                             'matrix will be loaded batch-wise during computations of test statistics. '
-                             'Default is False')
-    parser.add_argument('--perm', type=int,
-                        help='specify the number of permutations (integer value) to be performed,'
-                             'optional, if not provided no permutations will be performed')
-    parser.add_argument('--out_dir', type=str, default=Path.cwd().joinpath('results'),
-                        help='optional, if not provided, files will be stored in folder "results" in current directory,'
-                             'specify the name of the directory result-files should be stored in,'
-                             'absolute and relative paths are accepted')
-    parser.add_argument('--out_file', type=str,
-                        help='specify NAME of result files, will be stored as p_values_NAME and min_p_values_NAME,'
-                             'optional, if not provided name of phenotype will be used')
-    parser.add_argument('--device', type=int, default=0,
-                        help='specify GPU device to be used, default is 0')
-    parser.add_argument('--batch', type=int, default=50000,
-                        help='specify number of SNPs to work on simultaneously, default is 50000')
-    parser.add_argument('--batch_perm', type=int, default=1000,
-                        help='specify number of SNPs to work on simultaneously while using permutations, '
-                             'default is 1000')
-    parser.add_argument('--plot', '--manhattan', action='store_true',
+                             'PLINK and binary PLINK: all required files must be in the same folder with same prefix. '
+                             'See documentation for correct format.')
+    parser.add_argument('-y', '--phenotype_file', type=str, default=None,
+                        help='Specify the full path to the phenotype file, absolute and relative paths are '
+                             'accepted, only accept .csv, .txt and .pheno files. See documentation for correct format.')
+    parser.add_argument('-trait', '--trait', '--y_name', nargs='+', type=str, default=['phenotype_value'],
+                        help='Specify the name of phenotype (column) to be used in phenotype file,'
+                             'default is "phenotype_value". You can run permGWAS on several phenotypes one after '
+                             'another if they are in the same phenotype_file. Juste name the phenotypes, '
+                             'e.g. --trait pheno1 pheno2 if you want to use all available traits use --trait all')
+    parser.add_argument('-k', '--kinship_file', '--k', '--kinship', type=str, default=None,
+                        help='Specify the the full path to the kinship file, absolute and relative paths are accepted,'
+                             'only accept .csv and .h5/.h5py/.hdf5 files. See documentation for correct format. '
+                             'Optional, if not provided realized relationship kernel will be calculated')
+    parser.add_argument('-cov', '--covariate_file', '--cov', '--cov_file', type=str, default=None,
+                        help='Specify the full path to the covariates file, absolute and relative paths are accepted,'
+                             'currently only accept .csv files. Optional, if not provided only intercept will be used '
+                             'as fixed effect.')
+    parser.add_argument('-cov_list', '--covariate_list', nargs='+', type=str, default=None,
+                        help='Specify the covariates (column headers) to use from the covariates file. Optional, if '
+                             'not provided, will use all available columns as covariates.')
+    parser.add_argument('-maf', '--maf_threshold', '--maf', type=int, choices=range(0, 31), default=0,
+                        help='Specify minor allele frequency threshold as percentage value. '
+                             'Optional, if not provided no maf filtering will be performed.')
+    parser.add_argument('-load_genotype', action='store_true',
+                        help='If used, genotype matrix will be completely loaded from file during preprocessing. '
+                             'Otherwise load genotype batch-wise during computations of test statistics. '
+                             'Batch-wise loading is only possible, if kinship file is provided. Default is False')
+    parser.add_argument('-config', '--config_file', type=str, default=None,
+                        help='Specify the full path to the yaml config file. Specify all required arguments to use in '
+                             'this config file and just give the config file instead of all required parameters. '
+                             'For more info regarding the required format see the documentation.')
+    parser.add_argument('-model', type=str, default='lmm',
+                        help='Specify the model to use for GWAS. Currently only lmm (linear mixed model) is '
+                             'implemented.')
+    parser.add_argument('-out_dir', '--out_dir', type=str, default=pathlib.Path.cwd().joinpath('results'),
+                        help='Specify the name of the directory result-files should be stored in,'
+                             'absolute and relative paths are accepted. Optional, if not provided, files will be '
+                             'stored in folder "results" in current directory,')
+    parser.add_argument('-out_file', '--out_file', type=str, default=None,
+                        help='Specify NAME of result files, will be stored as p_values_NAME and min_p_values_NAME,'
+                             'optional, if not provided name of phenotype will be used. If you run permGWAS with '
+                             'several phenotypes, will always use name of phenotype.')
+    parser.add_argument('-disable_gpu', action='store_true',
+                        help='If used, GPUs will be disabled and only CPUs will be used for computations.')
+    parser.add_argument('-device', '--device', type=int, default=0,
+                        help='Specify GPU device to be used, default is 0.')
+    parser.add_argument('-perm', '--perm', type=int, default=0,
+                        help='Specify the number of permutations (integer value) to be performed, optional, if not '
+                             'provided no permutations will be performed')
+    parser.add_argument('-perm_method', type=str, default='x',
+                        help='Specify the method to use for permutations: x or y,'
+                             'for x permute fixed effects matrix including SNP of interest, which is equivalent to '
+                             'permuting the phenotype and the covariance matrix; for y permute only the phenotype '
+                             'vector as in permGWAS Version1. Default is x.')
+    parser.add_argument('-adj_p_value', action='store_true',
+                        help='If used, will additionally compute adjusted permutation-based p-values for each SNP.')
+    parser.add_argument('-batch', '--batch_size', '--batch', type=int, default=50000,
+                        help='Specify number of SNPs to work on simultaneously, default is 50000')
+    parser.add_argument('-batch_perm', '--perm_batch_size', '--batch_perm', type=int, default=1000,
+                        help='Specify number of SNPs to work on simultaneously, default is 1000')
+    parser.add_argument('-mplot', '--manhattan', '--plot', action='store_true',
                         help='optional, creates manhattan plot')
-    parser.add_argument('--qqplot', action='store_true',
+    parser.add_argument('-qqplot', '--qqplot', action='store_true',
                         help='optional, creates QQ-plot')
-    parser.add_argument('--not_add', action='store_true',
+    parser.add_argument('-not_add', '--not_add', action='store_true',
                         help='optional, use if genotype has different encoding.')
+    args = vars(parser.parse_args())
+    # check config file
+    args = check_functions.check_all_arguments(args=args)
+    phenotypes = args["trait"]
 
-    args = parser.parse_args()
-
-    '''check if all files and directories exist'''
-    if args.out_file is None:
-        args.out_file = args.y_name + '.csv'
-    args.x = check.check_file_paths(args.x)
-    args.y = check.check_file_paths(args.y)
-    args.k = check.check_file_paths(args.k)
-    args.cov_file = check.check_file_paths(args.cov_file)
-    args.out_dir, args.out_file = check.check_dir_paths(args.out_dir, args.out_file, check_again=True)
-
-    '''check if GPU is available'''
-    if torch.cuda.is_available():
-        dev = "cuda:"+str(args.device)
-        print('GPU is available. Perform computations on device ', dev)
-    else:
-        dev = "cpu"
-        print('GPU is not available. Perform computations on device ', dev)
-    args.device = torch.device(dev)
-
-    '''load data'''
-    print('Checked if all specified files exist. Start loading data.')
-    start = time.time()
-    X, y, K, covs, positions, chrom, X_index = prep.load_and_prepare_data(args)
-    if args.maf > 0:
-        if X is None:
-            X = load_files.load_genotype_matrix(args.x, sample_index=X_index)
-        X, positions, chrom, freq = prep.use_maf_filter(X, positions, chrom, args.maf)
-    elif X is not None:
-        freq = prep.get_maf(X)
-    print('Loaded data, elapsed time: %f s.' % (time.time()-start))
-    y = y.to(args.device)
-    K = K.to(args.device)
-    if covs is not None:
-        covs = covs.to(args.device)
-
-    n_samples = len(y)
-    n_snps = len(positions)
-
-    '''perform GWAS'''
-    print('Start performing GWAS on phenotype %s for %d SNPs and %d samples.' % (args.y_name, n_snps, n_samples))
-    start_gwas = time.time()
-    if X is not None:
-        output, v_g, v_e, _ = gwas.gwas(args, X, y, K, covs, X_index, n_snps)
-    else:
-        output, v_g, v_e, freq = gwas.gwas(args, X, y, K, covs, X_index, n_snps)
-    df = pd.DataFrame({'CHR': chrom,
-                       'POS': positions,
-                       'p_value': output[:, 0],
-                       'test_stat': output[:, 1],
-                       'maf': freq,
-                       'SE': output[:, 2],
-                       'effect_size': output[:, 3]})
-    print('Done performing GWAS on phenotype %s for %d SNPs.\n'
-          'Elapsed time: %f s' % (args.y_name, n_snps, time.time()-start_gwas))
-    if args.device.type != "cpu":
-        with torch.cuda.device(args.device):
-            torch.cuda.empty_cache()
-
-    '''perform GWAS with permutations'''
-    if args.perm is not None:
-        print('Start performing GWAS with %d permutations.' % args.perm)
-        start_perm = time.time()
-        adjusted_p_val, min_p_val, my_seeds = gwas.perm_gwas(args, X, y, K, output[:, 1], covs, X_index, n_snps)
-        df['adjusted_p_val'] = adjusted_p_val
-        df_min = pd.DataFrame({'seed': my_seeds,
-                               'min_p_val': min_p_val})
-        df_min.to_csv(args.out_dir.joinpath('min_p_values_' + args.out_file), index=False)
-        print('Done performing GWAS with %d permutations.'
-              'Elapsed time: %f s' % (args.perm, time.time()-start_perm))
-    else:
-        min_p_val = None
-    '''save p values'''
-    df.to_csv(args.out_dir.joinpath('p_values_' + args.out_file), index=False)
-    print('Total time: ', time.time()-start)
-
-    '''create plots'''
-    if args.plot is True:
-        if args.perm is None:
-            plot.manhattan(df=df, output=args.out_dir.joinpath('manhattan_' +
-                                                               Path(args.out_file).with_suffix('.png').as_posix()))
-        else:
-            plot.manhattan(df=df, output=args.out_dir.joinpath('manhattan_' +
-                                                               Path(args.out_file).with_suffix('.png').as_posix()),
-                           min_p_val=min_p_val)
-
-    if args.qqplot is True:
-        plot.qq_plot(df=df, output=args.out_dir.joinpath('qq_plot_' +
-                                                         Path(args.out_file).with_suffix('.png').as_posix()))
-
-    '''get summary statistics'''
-    helper_functions.get_summary_stats(arguments=args, samples=n_samples, snps=n_snps, v_g=v_g, v_e=v_e,
-                                       min_p_val=min_p_val)
+    # run pipeline
+    for trait in phenotypes:
+        print('Working on phenotype ', trait)
+        args["trait"] = trait
+        args = check_functions.check_output_files(args=args)
+        print('Checked if all specified files exist.')
+        try:
+            perform_gwas.run(**args)
+            args["out_file"] = None
+        except Exception as exc:
+            print("Failure when running permGWAS2.0")
+            print(exc)
+            continue

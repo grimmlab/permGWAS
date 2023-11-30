@@ -1,0 +1,10 @@
+---
+genotype_file: "./data/x_matrix.h5"
+phenotype_file: "./data/y_matrix.csv"
+trait: "phenotype_value"
+kinship_file:
+covariate_file:
+covariate_list:
+perm_method: "x"
+maf_threshold: 0
+perm: 100

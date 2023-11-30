@@ -1,4 +1,3 @@
-glimix-core
 h5py
 matplotlib
 numpy
@@ -6,4 +5,4 @@ pandas
 pandas-plink
 scipy
 seaborn
-
+pyyaml
