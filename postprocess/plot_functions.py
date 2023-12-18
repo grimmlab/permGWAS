@@ -4,6 +4,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.stats as stats
+plt.rc('axes', axisbelow=True)
+plt.rcParams['axes.labelsize'] = 16
+plt.rcParams['xtick.labelsize'] = 14
+plt.rcParams['ytick.labelsize'] = 14
+plt.rcParams['legend.fontsize'] = 16
+plt.rcParams['axes.titlesize'] = 20
 
 from utils import helper_functions
 
@@ -22,8 +28,13 @@ def manhattan_plot(df: pd.DataFrame, data_dir: pathlib.Path, filename: str, min_
     if not {'CHR', 'POS', 'p_value'}.issubset(df.columns):
         raise Exception('Cannot create Manhattan plot; need CHR, POS and p_value in DataFrame.')
     n_snps = len(df)
-    df = df[df['p_value'] <= 0.1].copy()
-    df['-log10'] = -np.log10(df['p_value'])
+    df = df[df['p_value'] <= 0.01].copy()
+    if isinstance(df['CHR'].values[0], str):
+        try:
+            df['CHR'] = [int(x.replace('Chr', '')) for x in df['CHR']]
+        except Exception as exc:
+            print("Chromosome identifier might be wrong. Use the chromosome number.")
+            print(exc)
     running_pos = 0
     cumul_pos = []
     for chrom, group_df in df.groupby('CHR'):
@@ -31,32 +42,27 @@ def manhattan_plot(df: pd.DataFrame, data_dir: pathlib.Path, filename: str, min_
         running_pos += group_df['POS'].max()
     df['cumul_pos'] = pd.concat(cumul_pos)
 
-    g = sns.relplot(
-        data=df,
-        x='cumul_pos',
-        y='-log10',
-        aspect=4,
-        hue='CHR',
-        palette='Set1',
-        linewidth=0,
-        s=6,
-        legend=None)
-
-    g.ax.set_xlabel('Chromosome')
-    g.ax.set_ylabel('-log10(p-value)')
-    g.ax.set_xticks(df.groupby('CHR')['cumul_pos'].median())
-    labels = np.unique(df['CHR'])
-    g.ax.set_xticklabels(labels)
-
-    g.axes[0, 0].axhline(-np.log10(helper_functions.compute_bonf_threshold(n_snps, sig_level)),
-                         color='green', label='Bonferroni')
+    fig, ax = plt.subplots(1, 1, figsize=(20, 5), constrained_layout=True)
+    sns.scatterplot(ax=ax, data=df, x='cumul_pos', y='p_value', hue='CHR', palette='colorblind', linewidth=0, s=20,
+                    legend=None)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.set_yscale("log")
+    ax.invert_yaxis()
+    ax.minorticks_off()
+    ax.set_xlabel('Chromosome')
+    ax.set_ylabel(r'$-log_{10}$(p-value)')
+    ax.set_xticks(df.groupby('CHR')['cumul_pos'].median())
+    ax.set_xticklabels(np.unique(df['CHR']))
 
     if min_p_values is not None:
-        g.axes[0, 0].axhline(-np.log10(helper_functions.compute_perm_threshold(min_p_values, sig_level)),
-                             color='blue', label='perm threshold')
-    g.ax.legend(loc="upper right")
-    plt.savefig(data_dir.joinpath('manhattan_' + pathlib.Path(filename).with_suffix('.png').as_posix()))
-    plt.clf()
+        ax.axhline(helper_functions.compute_perm_threshold(min_p_values, sig_level), linewidth=1.5, color='blue',
+                   label='permGWAS2')
+    ax.axhline(helper_functions.compute_bonf_threshold(n_snps, sig_level), linewidth=1.5, color='red',
+               label='Bonferroni')
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.13), fancybox=True, ncol=2, frameon=True)
+    fig.savefig(data_dir.joinpath('manhattan_' + pathlib.Path(filename).with_suffix('.png').as_posix()))
+    fig.clf()
 
 
 def qq_plot(p_values: np.array, data_dir: pathlib.Path, filename: str):
