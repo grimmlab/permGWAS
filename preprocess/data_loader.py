@@ -201,8 +201,8 @@ class Genotype:
             positions = []
             for line in f:
                 tmp = line.strip().split(" ")
-                chromosomes.append(tmp[0].strip())
-                positions.append(tmp[-1].strip())
+                chromosomes.append(int(tmp[0].strip()))
+                positions.append(int(tmp[-1].strip()))
         chromosomes = np.array(chromosomes)
         positions = np.array(positions)
         iupac_map = {"AA": "A", "GG": "G", "TT": "T", "CC": "C", "AG": "R", "GA": "R", "CT": "Y", "TC": "Y", "GC": "S",
@@ -481,12 +481,19 @@ class Dataset(Genotype):
             if len(pheno_index) == 0:
                 raise Exception("Samples of genotype and phenotype do not match.")
         else:
-            # load genotype sample ids, match data and only load genotype values for needed samples
-            self.load_genotype_ids()
-            pheno_index, self.sample_index = self.match_data(data_ids1=y_ids, data_ids2=self.sample_ids)
-            if len(pheno_index) == 0:
-                raise Exception("Samples of genotype and phenotype do not match.")
-            self.load_genotype_data()
+            if self.genotype_file.suffix in ('.h5', '.hdf5', '.h5py'):
+                # load genotype sample ids, match data and only load genotype values for needed samples
+                self.load_genotype_ids()
+                pheno_index, self.sample_index = self.match_data(data_ids1=y_ids, data_ids2=self.sample_ids)
+                if len(pheno_index) == 0:
+                    raise Exception("Samples of genotype and phenotype do not match.")
+                self.load_genotype_data()
+            else:
+                self.load_genotype_data()
+                pheno_index, self.sample_index = self.match_data(data_ids1=y_ids, data_ids2=self.sample_ids)
+                if len(pheno_index) == 0:
+                    raise Exception("Samples of genotype and phenotype do not match.")
+                self.X = self.get_matched_data(data=self.X, row_index=self.sample_index)
             self.filter_monomorphic_snps()
             self.maf = self.get_minor_allele_freq()
             if self.maf_threshold != 0:
