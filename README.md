@@ -45,10 +45,10 @@ Clone the repository into the directory where you want to set up the project
 git clone https://github.com/grimmlab/permGWAS.git
 ```
 
-Navigate to `config` and build a Docker image using the provided Dockerfile
+Navigate to `Docker` and build a Docker image using the provided Dockerfile
 
 ```shell
-cd config
+cd Docker
 docker build -t IMAGENAME .
 ```
 
@@ -57,7 +57,7 @@ You have to mount the directory where the repository is located on your machine 
 If you want to work on GPU, specify the GPUs to mount.
 
 ```shell
-docker run -it -v PATH/TO/REPO/FOLDER:NAME/OF/DIRECTORY/IN/CONTAINER --gpus=all --name CONTAINERNAME IMAGENAME
+docker run -it -v PATH/TO/REPO/FOLDER:NAME/OF/DIRECTORY/IN/CONTAINER --gpus device=0 --name CONTAINERNAME IMAGENAME
 ```
 
 
