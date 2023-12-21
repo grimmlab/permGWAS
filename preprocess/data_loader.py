@@ -213,7 +213,7 @@ class Genotype:
             X = []
             for line in f:
                 tmp = line.strip().split(" ")
-                sample_ids.append(int(tmp[1].strip()))
+                sample_ids.append(tmp[1].strip())
                 snps = []
                 j = 6
                 while j < len(tmp) - 1:
