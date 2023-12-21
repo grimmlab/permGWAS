@@ -202,7 +202,7 @@ class Genotype:
             for line in f:
                 tmp = line.strip().split(" ")
                 chromosomes.append(tmp[0].strip())
-                positions.append(int(tmp[-1].strip()))
+                positions.append(int(float(tmp[-1].strip())))
         chromosomes = np.array(chromosomes)
         positions = np.array(positions)
         iupac_map = {"AA": "A", "GG": "G", "TT": "T", "CC": "C", "AG": "R", "GA": "R", "RR": "R", "CT": "Y", "TC": "Y",
