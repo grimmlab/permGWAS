@@ -201,12 +201,13 @@ class Genotype:
             positions = []
             for line in f:
                 tmp = line.strip().split(" ")
-                chromosomes.append(int(tmp[0].strip()))
+                chromosomes.append(tmp[0].strip())
                 positions.append(int(tmp[-1].strip()))
         chromosomes = np.array(chromosomes)
         positions = np.array(positions)
-        iupac_map = {"AA": "A", "GG": "G", "TT": "T", "CC": "C", "AG": "R", "GA": "R", "CT": "Y", "TC": "Y", "GC": "S",
-                     "CG": "S", "AT": "W", "TA": "W", "GT": "K", "TG": "K", "AC": "M", "CA": "M"}
+        iupac_map = {"AA": "A", "GG": "G", "TT": "T", "CC": "C", "AG": "R", "GA": "R", "RR": "R", "CT": "Y", "TC": "Y",
+                     "YY": "Y", "GC": "S", "CG": "S", "SS": "S", "AT": "W", "TA": "W", "WW": "W", "GT": "K", "TG": "K",
+                     "KK": "K", "AC": "M", "CA": "M", "MM": "M"}
         with open(prefix + '.ped', 'r') as f:
             sample_ids = []
             X = []
