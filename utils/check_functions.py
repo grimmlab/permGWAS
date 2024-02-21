@@ -24,7 +24,20 @@ def check_all_arguments(args: dict) -> dict:
     elif args["trait"] == 'all':
         print('Will perform computations on all available phenotypes.')
         args["out_file"] = None
-        df = pd.read_csv(args["phenotype_file"], index_col=0)
+        suffix = args["phenotype_file"].suffix
+        if suffix == ".csv":
+            df = pd.read_csv(args["phenotype_file"], index_col=0)
+        # load PHENO or TXT
+        elif suffix == ".txt":
+            df = pd.read_csv(args["phenotype_file"], index_col=0, sep=" ")
+        elif suffix == ".pheno":
+            df = pd.read_csv(args["phenotype_file"], index_col=0, sep=" ")
+            if 'FID' in df.columns:
+                df.drop(columns='FID', inplace=True)
+            if 'IID' in df.columns:
+                df.drop(columns='IID', inplace=True)
+        else:
+            raise Exception('Only accept .txt, .pheno or .csv phenotype files.')
         args["trait"] = df.columns.tolist()
     elif isinstance(args["trait"], str):
         args["trait"] = [args["trait"]]
