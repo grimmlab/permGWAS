@@ -183,7 +183,7 @@ class LMM(_base_model.BaseModel):
             # set bounds for SNP batch
             lower_bound, upper_bound = self._bounds(batch_size=self.perm_batch_size, batch=batch)
             # load and transform batch of SNPs
-            print("Calculate perm test statistics for SNPs %d to %d" % (lower_bound, upper_bound))
+            print("\rCalculate perm test statistics for SNPs %d to %d" % (lower_bound, upper_bound), end='')
             if perm_method == 'y':
                 US = self._s_matrix(lower_bound=lower_bound, upper_bound=upper_bound)  # shape: (n,b)
                 # transform data
@@ -207,7 +207,7 @@ class LMM(_base_model.BaseModel):
                     torch.cuda.empty_cache()
         test_stat = torch.cat(test_stat, dim=1).to(torch.device("cpu"))  # shape: (p,m)
         time_test_stats = time.time()
-        print("Have perm test statistics. Elapsed time: ", time_test_stats - var_comp_time)
+        print("\nHave perm test statistics. Elapsed time: ", time_test_stats - var_comp_time)
         if adj_p_value:
             # calculate permutation-based p-values
             self.perm_p_val = self.get_perm_p_value(perm_test_stats=test_stat)  # shape: (m)
