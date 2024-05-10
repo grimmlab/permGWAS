@@ -4,7 +4,7 @@ import pathlib
 import argparse
 
 from utils import check_functions
-import plot_functions
+from postprocess import plot_functions
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

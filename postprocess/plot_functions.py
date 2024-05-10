@@ -78,7 +78,7 @@ def qq_plot(p_values: np.array, data_dir: pathlib.Path, filename: str):
     expected_p = -np.log10(np.arange(1.0 / float(n_snps), 1, 1.0 / float(n_snps + 1)))
     inflation_factor = np.median(stats.chi2.isf(p_values, 1)) / 0.456
 
-    plt.figure(figsize=(4, 4))
+    plt.figure(figsize=(6, 6))
     plt.plot(expected_p, observed_p, '.', markersize=4, markeredgewidth=0, alpha=0.8)
     plt.plot(expected_p, expected_p, 'k--', linewidth=0.75)
     plt.text(3.5, 0.5, "$\lambda=%.2f$" % inflation_factor)
