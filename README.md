@@ -19,6 +19,15 @@ y: permute only the phenotype vector (same method as in the original permGWAS)
 
 Details on the architecture of permGWAS and permGWAS2, benchmarking results of the framework and on permutation-based thresholds can be found in our publications.
 
+## How to run permGWAS2
+1. [Requirements & Installation](./docs/INSTALLATION.md)
+2. [Quickstart Guide](./docs/QUICKSTART.md)
+3. [Data Guide](./docs/DATAGUIDE.md)
+4. [permGWAS2 with permutations](./docs/PERMUTATIONS.md)
+5. [Create plots](./docs/PLOTS.md)
+6. [Optional settings](./docs/OPTIONS.md)
+
+
 ## Publications & Citation
 
 John, M., Korte, A. & Grimm, D. G. (2023). 
@@ -31,12 +40,3 @@ John, M., Ankenbrand, M. J., Artmann, C., Freudenthal, J. A., Korte, A., & Grimm
 Bioinformatics, 2022.   
 
 DOI: https://doi.org/10.1093/bioinformatics/btac455
-
-
-## How to run permGWAS2
-1. [Requirements & Installation](./docs/INSTALLATION.md)
-2. [Quickstart Guide](./docs/QUICKSTART.md)
-3. [Data Guide](./docs/DATAGUIDE.md)
-4. [permGWAS2 with permutations](./docs/PERMUTATIONS.md)
-5. [Create plots](./docs/PLOTS.md)
-6. [Optional settings](./docs/OPTIONS.md)
