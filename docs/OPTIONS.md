@@ -15,7 +15,7 @@ GPUs, although they are available, you can use the flag `disable_gpu`:
 ```shell
 python3 permGWAS.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv -device 1
 
-python3 permGWAS.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv -dasable_gpu
+python3 permGWAS.py -x ./data/x_matrix.h5 -y ./data/y_matrix.csv -disable_gpu
 ```
 
 ## Batch size
