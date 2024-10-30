@@ -31,7 +31,7 @@ Details on the architecture of permGWAS and permGWAS2, benchmarking results of t
 ## Publications & Citation
 
 John, M., Korte, A., Todesco M., & Grimm, D. G. (2024). 
-**pPopulation-aware permutation-based significance thresholds for genome-wide association studies**.  
+**Population-aware permutation-based significance thresholds for genome-wide association studies**.  
 Bioinformatics Advances, 2024
 
 DOI: [https://doi.org/10.1093/bioadv/vbae168](https://doi.org/10.1093/bioadv/vbae168)
