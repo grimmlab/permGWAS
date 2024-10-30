@@ -30,13 +30,14 @@ Details on the architecture of permGWAS and permGWAS2, benchmarking results of t
 
 ## Publications & Citation
 
-John, M., Korte, A. & Grimm, D. G. (2023). 
-**permGWAS2: Enhanced and Accelerated Permutation-based Genome-wide Association Studies**. bioRxiv.
+John, M., Korte, A., Todesco M., & Grimm, D. G. (2024). 
+**pPopulation-aware permutation-based significance thresholds for genome-wide association studies**.  
+Bioinformatics Advances, 2024
 
-DOI: https://doi.org/10.1101/2023.11.28.569016
+DOI: [https://doi.org/10.1093/bioadv/vbae168](https://doi.org/10.1093/bioadv/vbae168)
 
 John, M., Ankenbrand, M. J., Artmann, C., Freudenthal, J. A., Korte, A., & Grimm, D. G. (2022).  
 **Efficient Permutation-based Genome-wide Association Studies for Normal and Skewed Phenotypic Distributions**.  
 Bioinformatics, 2022.   
 
-DOI: https://doi.org/10.1093/bioinformatics/btac455
+DOI: [https://doi.org/10.1093/bioinformatics/btac455](https://doi.org/10.1093/bioinformatics/btac455)
