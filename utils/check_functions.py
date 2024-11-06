@@ -21,7 +21,7 @@ def check_all_arguments(args: dict) -> dict:
     args["covariate_file"] = check_file(filepath=args["covariate_file"])
     if args["trait"] is None:
         args["trait"] = 'phenotype_value'
-    elif args["trait"] == 'all':
+    elif (args["trait"] == 'all') or (args["trait"] == ['all']):
         print('Will perform computations on all available phenotypes.')
         args["out_file"] = None
         suffix = args["phenotype_file"].suffix
