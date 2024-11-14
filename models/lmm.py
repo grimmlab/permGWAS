@@ -185,13 +185,14 @@ class LMM(_base_model.BaseModel):
             # load and transform batch of SNPs
             print("\rCalculate perm test statistics for SNPs %d to %d" % (lower_bound, upper_bound), end='')
             if perm_method == 'y':
-                US = self._s_matrix(lower_bound=lower_bound, upper_bound=upper_bound)  # shape: (n,b)
+                US = self._s_matrix(lower_bound=lower_bound, upper_bound=upper_bound, save_meta=False)  # shape: (n,b)
                 # transform data
                 US = self.transform_input(X=US, U=self.U)
                 # get 3D copy of S for permutations
                 US = self.get_3d_copy(v=US, batch_size=self.perm)  # shape: (p,n,b)
             else:
-                US = self._s_matrix(lower_bound=lower_bound, upper_bound=upper_bound, device=torch.device("cpu"))  # shape: (n,b)
+                US = self._s_matrix(lower_bound=lower_bound, upper_bound=upper_bound, device=torch.device("cpu"),
+                                    save_meta=False)  # shape: (n,b)
                 US = self.permute(data=US)  # shape: (p,n,b)
                 # transform data
                 US = self.transform_input(X=US, U=self.U)  # shape: (p,n,b)
@@ -660,13 +661,14 @@ class LMM(_base_model.BaseModel):
         else:
             return torch.unsqueeze((self.D + delta).repeat(batch_size, 1), 1)
 
-    def _s_matrix(self, lower_bound: int, upper_bound: int, device=None) -> torch.tensor:
+    def _s_matrix(self, lower_bound: int, upper_bound: int, device=None, save_meta: bool = True) -> torch.tensor:
         """
         load batch of markers to specified device
 
         :param lower_bound: lower bound of marker batch
         :param upper_bound: upper bound of marker batch
         :param device: either cpu or cuda device
+        :param save_meta: if genotype is loaded batch-wise, set to False for permutations to prevent saving of meta info
 
         :return: matrix with markers of shape (n,upper_bound-lower_bound)
         """
@@ -674,7 +676,7 @@ class LMM(_base_model.BaseModel):
             device = self.device
         if self.dataset.X is None:
             # load X batch-wise
-            self.dataset.load_genotype_batch_wise(device=device, snp_lower_index=lower_bound,
+            self.dataset.load_genotype_batch_wise(device=device, save_meta=save_meta, snp_lower_index=lower_bound,
                                                   snp_upper_index=upper_bound)  # shape: (n,b)
             S = self.dataset.X  # shape: (n,b)
             self.dataset.reset_genotype()

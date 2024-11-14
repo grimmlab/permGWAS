@@ -122,9 +122,9 @@ class Genotype:
                 self.positions = positions
                 self.maf = maf
             else:
-                self.chromosomes.append(chromosomes)
-                self.positions.append(positions)
-                self.maf.append(maf)
+                self.chromosomes = np.concatenate((self.chromosomes, chromosomes))
+                self.positions = np.concatenate((self.positions, positions))
+                self.maf = torch.cat((self.maf, maf))
 
     def load_genotype_hdf5_file(self, snp_lower_index: int = None, snp_upper_index: int = None) -> tuple:
         """
